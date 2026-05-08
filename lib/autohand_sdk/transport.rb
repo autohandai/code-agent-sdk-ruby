@@ -213,7 +213,13 @@ module AutohandSDK
     end
 
     def clean_subprocess_environment
-      ENV.to_h.tap do |env|
+      base_env = if defined?(::Bundler) && ::Bundler.respond_to?(:unbundled_env)
+                   ::Bundler.unbundled_env
+                 else
+                   ENV.to_h
+                 end
+
+      base_env.tap do |env|
         ENV.each_key do |key|
           env[key] = nil if key.start_with?("BUNDLE_") || %w[RUBYOPT RUBYLIB GEM_HOME GEM_PATH].include?(key)
         end

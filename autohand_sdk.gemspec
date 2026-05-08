@@ -52,4 +52,6 @@ Gem::Specification.new do |spec|
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |file| File.basename(file) }
   spec.require_paths = ["lib"]
+
+  spec.add_dependency "logger", ">= 1.6", "< 2.0"
 end
