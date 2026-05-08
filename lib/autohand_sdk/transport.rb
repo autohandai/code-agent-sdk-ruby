@@ -74,7 +74,7 @@ module AutohandSDK
 
       env = build_environment
       args = build_args
-      @stdin, @stdout, @stderr, @wait_thread = Open3.popen3(env, *args, chdir: @config.cwd)
+      @stdin, @stdout, @stderr, @wait_thread = Open3.popen3(env, *args, chdir: @config.cwd, unsetenv_others: true)
       @stdin.sync = true
       @running = true
 
@@ -219,10 +219,8 @@ module AutohandSDK
                    ENV.to_h
                  end
 
-      base_env.tap do |env|
-        ENV.each_key do |key|
-          env[key] = nil if key.start_with?("BUNDLE_") || %w[RUBYOPT RUBYLIB GEM_HOME GEM_PATH].include?(key)
-        end
+      base_env.reject do |key, _value|
+        key.start_with?("BUNDLE_") || %w[RUBYOPT RUBYLIB GEM_HOME GEM_PATH].include?(key)
       end
     end
 
