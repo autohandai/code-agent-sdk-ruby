@@ -2,13 +2,27 @@
 
 This gem publishes through RubyGems Trusted Publishing from GitHub Actions.
 
-## RubyGems Setup
+## One-Time RubyGems Setup
 
-Configure the `autohand_sdk` gem on RubyGems with a trusted publisher:
+Run the trusted-publisher setup helper:
+
+```bash
+bundle exec rake release:trusted_publisher
+```
+
+This runs the RubyGems-maintained `configure_trusted_publisher` helper for:
 
 - Repository: `autohandai/code-agent-sdk-ruby`
 - Workflow: `.github/workflows/release.yml`
 - Environment: `release`
+
+Choose the tag-based release option when prompted. You will still enter RubyGems credentials and MFA once; that owner authorization is the security boundary. After that, GitHub Actions uses short-lived OIDC tokens and no long-lived RubyGems API key is stored in this repository.
+
+If RubyGems asks for an OTP separately, pass it as an environment variable:
+
+```bash
+RUBYGEMS_OTP=123456 bundle exec rake release:trusted_publisher
+```
 
 Keep MFA enabled on the RubyGems owner accounts. Trusted Publishing removes the need for a long-lived API key in GitHub secrets.
 
@@ -26,14 +40,13 @@ bundle exec rake package:verify
 ```
 
 4. Commit the version and changelog changes.
-5. Push an annotated tag:
+5. Create and push the release tag:
 
 ```bash
-git tag -a v0.1.0 -m "Release v0.1.0"
-git push origin main --tags
+bundle exec rake release:tag
 ```
 
-The release workflow rebuilds the gem from the tag, verifies the package executable, and publishes to RubyGems.
+The task verifies the working tree is clean, runs tests, runs YARD, builds the gem, verifies the package executable, creates the annotated `vVERSION` tag, and pushes it. The release workflow then rebuilds from the tag and publishes to RubyGems.
 
 ## CLI Installer
 
