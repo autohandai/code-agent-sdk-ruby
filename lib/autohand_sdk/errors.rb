@@ -5,6 +5,8 @@ module AutohandSDK
 
   class ConfigurationError < Error; end
 
+  class CLIInstallError < Error; end
+
   class TransportError < Error; end
 
   class TransportNotStartedError < TransportError; end

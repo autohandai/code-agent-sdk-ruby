@@ -7,6 +7,7 @@ require "rbconfig"
 require "shellwords"
 
 require_relative "configuration"
+require_relative "cli_installer"
 require_relative "errors"
 
 module AutohandSDK
@@ -258,37 +259,10 @@ module AutohandSDK
     end
 
     def cli_binary
-      return @config.cli_path if @config.cli_path
-
-      binary_name = platform_binary_name
-      package_binary = File.expand_path("../../cli/#{binary_name}", __dir__)
-      return package_binary if File.exist?(package_binary)
-
-      find_executable("autohand") || find_executable(binary_name) || binary_name
-    end
-
-    def platform_binary_name
-      os = RbConfig::CONFIG.fetch("host_os").downcase
-      cpu = RbConfig::CONFIG.fetch("host_cpu").downcase
-
-      case os
-      when /darwin/
-        cpu.include?("arm") || cpu.include?("aarch64") ? "autohand-macos-arm64" : "autohand-macos-x64"
-      when /linux/
-        cpu.include?("arm") || cpu.include?("aarch64") ? "autohand-linux-arm64" : "autohand-linux-x64"
-      when /mswin|mingw|cygwin/
-        "autohand-windows-x64.exe"
-      else
-        raise ConfigurationError, "Unsupported platform: #{os}/#{cpu}"
-      end
-    end
-
-    def find_executable(name)
-      ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).each do |directory|
-        path = File.join(directory, name)
-        return path if File.executable?(path) && !File.directory?(path)
-      end
-      nil
+      AutohandSDK::CLIInstaller.detect!(
+        explicit_path: @config.cli_path,
+        path: @config.env_vars.fetch("PATH", ENV.fetch("PATH", nil))
+      )
     end
 
     def copy_skill_files

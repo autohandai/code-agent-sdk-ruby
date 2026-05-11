@@ -1,0 +1,105 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+lib_dir = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib_dir) if File.directory?(lib_dir)
+
+require "optparse"
+require "autohand_sdk"
+
+def print_help
+  puts <<~HELP
+    autohand-sdk #{AutohandSDK::VERSION}
+
+    Usage:
+      autohand-sdk doctor
+      autohand-sdk cli-path
+      autohand-sdk install-cli [options]
+      autohand-sdk version
+
+    Commands:
+      doctor       Print SDK and CLI discovery status.
+      cli-path     Print the CLI path the SDK will use.
+      install-cli  Install the Autohand Code CLI into ~/.autohand/bin.
+      version      Print the Ruby SDK version.
+
+    Install options:
+      --dir DIR                Install directory. Defaults to ~/.autohand/bin.
+      --force                  Replace an existing installed CLI.
+      --release-base-url URL   Release asset base URL.
+      --checksum SHA256        Expected SHA256 for the downloaded asset.
+      --no-download            Only install a bundled CLI binary.
+  HELP
+end
+
+def run_install(argv)
+  options = {
+    install_dir: AutohandSDK::CLIInstaller.default_install_dir,
+    force: false,
+    release_base_url: AutohandSDK::CLIInstaller.default_release_base_url,
+    checksum: ENV.fetch("AUTOHAND_CLI_SHA256", nil),
+    download: true
+  }
+
+  parser = OptionParser.new do |opts|
+    opts.banner = "Usage: autohand-sdk install-cli [options]"
+    opts.on("--dir DIR", "Install directory") { |value| options[:install_dir] = value }
+    opts.on("--force", "Replace an existing installed CLI") { options[:force] = true }
+    opts.on("--release-base-url URL", "Release asset base URL") { |value| options[:release_base_url] = value }
+    opts.on("--checksum SHA256", "Expected SHA256 for the downloaded asset") { |value| options[:checksum] = value }
+    opts.on("--no-download", "Only install a bundled CLI binary") { options[:download] = false }
+    opts.on("-h", "--help", "Show help") do
+      puts opts
+      exit 0
+    end
+  end
+  parser.parse!(argv)
+
+  result = AutohandSDK::CLIInstaller.install!(**options)
+  puts "Installed Autohand Code CLI to #{result.path} from #{result.source} #{result.binary_name}."
+end
+
+def run_doctor
+  status = AutohandSDK::CLIInstaller.status
+
+  puts "Autohand SDK: #{status.fetch(:sdk_version)}"
+  puts "Ruby: #{status.fetch(:ruby_version)}"
+  puts "Platform: #{status.fetch(:platform)}"
+  puts "CLI binary: #{status.fetch(:binary_name)}"
+  puts "Release assets: #{status.fetch(:release_base_url)}"
+  puts "Bundled CLI: #{status.fetch(:bundled_path) || "not bundled"}"
+  puts "Installed CLI: #{status.fetch(:installed) ? status.fetch(:installed_path) : "not installed"}"
+  puts "PATH CLI: #{status.fetch(:path_cli) || "not found"}"
+  puts "Effective CLI: #{status.fetch(:detected_path) || "not found"}"
+
+  return if status.fetch(:detected_path)
+
+  warn
+  warn "Run `bundle exec autohand-sdk install-cli` to install the CLI for this user."
+  exit 1
+end
+
+command = ARGV.shift
+
+begin
+  case command
+  when nil, "help", "-h", "--help"
+    print_help
+  when "version", "--version"
+    puts AutohandSDK::VERSION
+  when "doctor"
+    run_doctor
+  when "cli-path"
+    puts AutohandSDK::CLIInstaller.detect!
+  when "install-cli"
+    run_install(ARGV)
+  else
+    warn "Unknown command: #{command}"
+    warn
+    print_help
+    exit 64
+  end
+rescue OptionParser::ParseError, AutohandSDK::Error => e
+  warn e.message
+  exit 1
+end

@@ -3,6 +3,7 @@
 require_relative "autohand_sdk/version"
 require_relative "autohand_sdk/errors"
 require_relative "autohand_sdk/configuration"
+require_relative "autohand_sdk/cli_installer"
 require_relative "autohand_sdk/transport"
 require_relative "autohand_sdk/rpc_client"
 require_relative "autohand_sdk/client"

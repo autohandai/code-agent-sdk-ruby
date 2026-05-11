@@ -59,7 +59,22 @@ Then run:
 bundle install
 ```
 
-The SDK needs the Autohand Code CLI available either on `PATH` as `autohand`, through a bundled `cli/` binary, or through `cli_path:`.
+Install the Autohand Code CLI for this user:
+
+```bash
+bundle exec autohand-sdk install-cli
+bundle exec autohand-sdk doctor
+```
+
+The Ruby gem stays small instead of vendoring every platform binary into one RubyGems package. The installer downloads the correct Autohand Code CLI release asset for macOS, Linux, or Windows and installs it into `~/.autohand/bin`. The SDK then discovers the CLI from `cli_path:`, a bundled `cli/` binary, `~/.autohand/bin/autohand`, or `PATH`.
+
+Use `cli_path:` when you need a custom CLI build:
+
+```ruby
+AutohandSDK::Client.open(cli_path: "/path/to/autohand", cwd: ".") do |sdk|
+  puts sdk.get_state
+end
+```
 
 ## Quick Start
 
@@ -152,6 +167,7 @@ end
 - [Getting Started](docs/getting-started.md)
 - [API Reference](docs/API_REFERENCE.md)
 - [Configuration](docs/configuration.md)
+- [Releasing](docs/releasing.md)
 - [Event Streaming](docs/event-streaming.md)
 - [Error Handling](docs/error-handling.md)
 - [Permissions](docs/permissions.md)

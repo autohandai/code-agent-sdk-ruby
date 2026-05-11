@@ -25,6 +25,22 @@ AutohandSDK::Client.new(
 | `extra_args` | Additional CLI args appended at startup. |
 | `env_vars` | Environment variables forwarded to the subprocess. |
 
+CLI discovery order:
+
+1. Explicit `cli_path`.
+2. A platform binary bundled inside `cli/`.
+3. `~/.autohand/bin/autohand`, installed by `bundle exec autohand-sdk install-cli`.
+4. `autohand` on `PATH`.
+5. The platform binary name on `PATH`, such as `autohand-macos-arm64`.
+
+Use the bundled executable helpers to inspect or install the CLI:
+
+```bash
+bundle exec autohand-sdk cli-path
+bundle exec autohand-sdk install-cli
+bundle exec autohand-sdk doctor
+```
+
 Bundler and Ruby runtime variables such as `BUNDLE_GEMFILE`, `RUBYOPT`, `RUBYLIB`, `GEM_HOME`, and `GEM_PATH` are scrubbed before the CLI subprocess starts. This keeps Rails and Bundler apps from accidentally forcing Ruby-specific boot settings into the Autohand CLI process. Use `env_vars` for values you intentionally want to pass.
 
 ## Agent behavior

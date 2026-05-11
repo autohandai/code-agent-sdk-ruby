@@ -4,7 +4,6 @@
 
 - Ruby 3.2 or newer.
 - Bundler.
-- Autohand Code CLI available on `PATH` as `autohand`, bundled in `cli/`, or passed with `cli_path:`.
 
 ## Install
 
@@ -15,6 +14,15 @@ gem "autohand_sdk", git: "https://github.com/autohandai/code-agent-sdk-ruby"
 ```bash
 bundle install
 ```
+
+Install the Autohand Code CLI:
+
+```bash
+bundle exec autohand-sdk install-cli
+bundle exec autohand-sdk doctor
+```
+
+The installer downloads the correct platform binary from the Autohand Code CLI GitHub release and installs it into `~/.autohand/bin`.
 
 ## First Run
 

@@ -1,18 +1,18 @@
-name: CI
+name: Release
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
-  test:
+  rubygems:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        ruby: ["3.2", "3.3", "3.4"]
+    environment: release
 
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
+          ruby-version: "3.4"
           bundler-cache: true
 
       - name: Run tests and linter
@@ -30,3 +30,6 @@ jobs:
         run: |
           gem build autohand_sdk.gemspec
           bundle exec rake package:verify
+
+      - name: Publish to RubyGems
+        uses: rubygems/release-gem@v1

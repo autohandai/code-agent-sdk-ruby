@@ -127,3 +127,28 @@ Streams a run directly.
 - `#wait` returns the final result hash.
 - `#json(validate: nil)` parses the final text as JSON.
 - `#abort` aborts the active run.
+
+## `AutohandSDK::CLIInstaller`
+
+Installs and locates the Autohand Code CLI used by the SDK.
+
+### `.install!(install_dir: nil, force: false, release_base_url: nil)`
+
+Downloads or copies the current platform CLI into `~/.autohand/bin` by default and returns an `InstallResult`.
+
+```ruby
+result = AutohandSDK::CLIInstaller.install!(force: true)
+puts result.path
+```
+
+### `.detect!(explicit_path: nil)`
+
+Returns the CLI executable path or raises `AutohandSDK::ConfigurationError` with an installation hint.
+
+The command-line wrapper exposes the same behavior:
+
+```bash
+bundle exec autohand-sdk install-cli
+bundle exec autohand-sdk cli-path
+bundle exec autohand-sdk doctor
+```

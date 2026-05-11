@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `autohand-sdk` executable with `doctor`, `cli-path`, and `install-cli` commands.
+- `AutohandSDK::CLIInstaller` for platform CLI discovery and user-level CLI installation.
+- GitHub Actions release workflow for RubyGems Trusted Publishing.
+
 ## [0.1.0] - 2026-05-09
 
 ### Added

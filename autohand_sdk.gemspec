@@ -13,15 +13,15 @@ Gem::Specification.new do |spec|
     "A Ruby SDK for controlling Autohand Code CLI agents over JSON-RPC,",
     "with streaming events, permissions, sessions, skills, and Rails-friendly configuration."
   ].join(" ")
-  spec.homepage = "https://github.com/autohandai/code-agent-sdk-ruby"
+  spec.homepage = "https://autohand.ai/sdk/"
   spec.license = "Apache-2.0"
   spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = spec.homepage
-  spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/autohandai/code-agent-sdk-ruby"
+  spec.metadata["changelog_uri"] = "https://github.com/autohandai/code-agent-sdk-ruby/blob/main/CHANGELOG.md"
   spec.metadata["documentation_uri"] = "https://autohand.ai/docs/agent-sdk/"
-  spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/autohandai/code-agent-sdk-ruby/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   tracked_files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
@@ -31,6 +31,7 @@ Gem::Specification.new do |spec|
     Dir.glob(%w[
                lib/**/*.rb
                docs/**/*.md
+               exe/*
                examples/**/*.rb
                README.md
                CHANGELOG.md
