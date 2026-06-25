@@ -17,7 +17,7 @@ def github_credentials_from_env
     token_env_name: token_env_name,
     remote: ENV.fetch("AUTOHAND_GITHUB_REMOTE", "origin"),
     base_branch: ENV.fetch("AUTOHAND_GITHUB_BASE_BRANCH", "main"),
-    repository: ENV["GITHUB_REPOSITORY"]
+    repository: ENV.fetch("GITHUB_REPOSITORY", nil)
   }
 end
 
@@ -68,13 +68,20 @@ def incident_packet
 end
 
 def build_prompt(incident, github)
-  repo_hint = github[:repository] ? "- GitHub repository hint: #{github[:repository]}." : "- Discover the GitHub repository from git remote output."
+  repo_hint =
+    if github[:repository]
+      "- GitHub repository hint: #{github[:repository]}."
+    else
+      "- Discover the GitHub repository from git remote output."
+    end
 
   [
-    "You are a senior QA engineering agent responsible for converting production incidents into verified repair pull requests.",
+    "You are a senior QA engineering agent responsible for converting production incidents into verified repair",
+    "pull requests.",
     "",
     "GitHub credentials:",
-    "- A GitHub token is available in the #{github[:token_env_name]} environment variable. Do not print or commit the token.",
+    "- A GitHub token is available in the #{github[:token_env_name]} environment variable.",
+    "- Do not print or commit the token.",
     "- Use git remote #{github[:remote]}.",
     "- Open the pull request against #{github[:base_branch]}.",
     repo_hint,
@@ -101,7 +108,12 @@ end
 target_repo = ENV.fetch("AUTOHAND_TARGET_REPO", ".")
 prompt = build_prompt(incident_packet, github_credentials_from_env)
 
-AutohandSDK::Agent.open(cwd: target_repo, instructions: "Work like a careful senior QA engineer. Keep secrets out of logs and pull request text.") do |agent|
+instructions = [
+  "Work like a careful senior QA engineer.",
+  "Keep secrets out of logs and pull request text."
+].join(" ")
+
+AutohandSDK::Agent.open(cwd: target_repo, instructions: instructions) do |agent|
   run = agent.send(prompt)
   run.stream.each do |event|
     case event[:type]

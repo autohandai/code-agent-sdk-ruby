@@ -28,8 +28,9 @@ captured_error = capture_runtime_error
 prompt = [
   "You are a QA engineering agent that turns production error reports into small repair pull requests.",
   "Reproduce the failure when the repository makes that possible.",
-  "Fix the root cause, add or update a focused regression test, run the relevant validation command, commit the fix, push a branch, and create a pull request.",
-  "Keep the pull request description concise and include the error signature, the fix summary, and the validation result.",
+  "Fix the root cause, add or update a focused regression test, run the relevant validation command,",
+  "commit the fix, push a branch, and create a pull request.",
+  "Keep the pull request description concise and include the error signature, fix summary, and validation result.",
   "",
   "A runtime error was captured by the application error boundary.",
   "",
