@@ -47,4 +47,11 @@ class ClientTest < SDKTestCase
   ensure
     sdk&.close
   end
+
+  def test_hook_event_constants_match_cli_names
+    assert_equal("post-response", AutohandSDK::HookEvents::POST_RESPONSE)
+    assert_equal("teammate-spawned", AutohandSDK::HookEvents::TEAMMATE_SPAWNED)
+    assert_equal("context:critical", AutohandSDK::HookEvents::CONTEXT_CRITICAL)
+    assert_includes(AutohandSDK::HookEvents::ALL, "automode:checkpoint")
+  end
 end

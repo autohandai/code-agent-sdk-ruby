@@ -2,6 +2,7 @@
 
 require_relative "autohand_sdk/version"
 require_relative "autohand_sdk/errors"
+require_relative "autohand_sdk/hook_events"
 require_relative "autohand_sdk/configuration"
 require_relative "autohand_sdk/cli_installer"
 require_relative "autohand_sdk/transport"

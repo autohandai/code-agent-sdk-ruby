@@ -47,7 +47,7 @@ sdk = AutohandSDK::Client.new(
 
 ```ruby
 sdk.add_hook(
-  event: "pre-tool",
+  event: AutohandSDK::HookEvents::PRE_TOOL,
   command: "echo tool starting",
   filter: { tool: ["bash"] }
 )
