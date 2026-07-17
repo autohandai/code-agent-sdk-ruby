@@ -63,7 +63,25 @@ module FakeCLI
         when "autohand.getSupportedModels"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { models: [{ id: "test-model" }] })
         when "autohand.getSupportedCommands"
-          puts JSON.generate(jsonrpc: "2.0", id: id, result: { commands: ["model", "permissions"] })
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: { commands: ["model", "/permissions", "autoresearch"] })
+        when "autohand.argv"
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: ARGV)
+        when "autohand.autoresearch.status"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            method: "autohand.autoresearch.status",
+            params: {
+              active: true,
+              goal: "Reduce test runtime",
+              iteration: 3,
+              maxIterations: 12,
+              runsLogged: 3,
+              statusText: "Auto-research active",
+              subcommand: "status",
+              timestamp: "2026-07-17T00:00:00.000Z"
+            }
+          )
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true, active: true, runsLogged: 3 })
         when "autohand.env"
           puts JSON.generate(
             jsonrpc: "2.0",

@@ -76,6 +76,41 @@ Scopes are `:once`, `:session`, `:project`, and `:user`.
 - `#get_context_usage`
 - `#account_info`
 
+### Slash commands and persistent goals
+
+- `#stream_command(command, args = nil, **options)`
+- `#supported_commands`
+- `#supports_command?(command)`
+- `#get_goal`
+- `#create_goal(objective:, **budgets)`
+- `#update_goal(**changes)`
+- `#clear_goal`
+- `#queue_goal(objective:, **budgets)`
+- `#start_queued_goal`
+- `#list_goal_templates`
+
+Goal budget keys are sent in the CLI's snake-case RPC format: `token_budget`,
+`time_budget_seconds`, `min_tokens_before_wrap_up`, and
+`min_time_seconds_before_wrap_up`.
+
+### Replayable autoresearch ledger
+
+- `#start_autoresearch(objective:, **options)`
+- `#get_autoresearch_status`
+- `#stop_autoresearch`
+- `#get_autoresearch_history`
+- `#replay_autoresearch(attempt_id:, evaluator: nil)`
+- `#rescore_autoresearch(attempt_id: nil, all: false)`
+- `#compare_autoresearch(left_attempt_id:, right_attempt_id:)`
+- `#get_autoresearch_pareto`
+- `#pin_autoresearch(attempt_id:, pinned:)`
+- `#prune_autoresearch(dry_run: nil, yes: nil)`
+
+Ruby keyword names are converted recursively to the CLI's camel-case
+autoresearch protocol. Results remain string-keyed hashes so evaluation,
+decision, sample, Pareto, and retention data mirror the JSON-RPC response.
+See [Replayable Autoresearch](autoresearch.md) for the full lifecycle.
+
 ### MCP and hooks
 
 - `#reconnect_mcp_server(server_name)`
@@ -120,6 +155,15 @@ Adds JSON-only instructions, waits for the run, parses the final response, and o
 ### `#stream(input, **options)`
 
 Streams a run directly.
+
+### Slash-command helpers
+
+- `#command(command, args = nil, **options)` returns a `Run`.
+- `#deep_research(topic, **options)` runs `/deep-research`.
+- `#autoresearch(objective, **options)` runs `/autoresearch`.
+
+All `AutohandSDK::Client` goal and autoresearch methods are also available on
+`Agent` through delegation.
 
 ## `AutohandSDK::Run`
 

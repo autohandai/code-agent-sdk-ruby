@@ -25,6 +25,18 @@ module AutohandSDK
     AUTOMODE_COMPLETE = "automode:complete"
     AUTOMODE_ERROR = "automode:error"
 
+    AUTORESEARCH_START = "autoresearch:start"
+    AUTORESEARCH_PAUSE = "autoresearch:pause"
+    AUTORESEARCH_INIT = "autoresearch:init"
+    AUTORESEARCH_BEFORE = "autoresearch:before"
+    AUTORESEARCH_RUN = "autoresearch:run"
+    AUTORESEARCH_AFTER = "autoresearch:after"
+    AUTORESEARCH_LOG = "autoresearch:log"
+    AUTORESEARCH_COMPLETE = "autoresearch:complete"
+    AUTORESEARCH_ERROR = "autoresearch:error"
+
+    GOAL_WRITTEN_COMPLETED = "goal-written:completed"
+
     PRE_LEARN = "pre-learn"
     POST_LEARN = "post-learn"
 
@@ -69,6 +81,16 @@ module AutohandSDK
       AUTOMODE_CANCEL,
       AUTOMODE_COMPLETE,
       AUTOMODE_ERROR,
+      AUTORESEARCH_START,
+      AUTORESEARCH_PAUSE,
+      AUTORESEARCH_INIT,
+      AUTORESEARCH_BEFORE,
+      AUTORESEARCH_RUN,
+      AUTORESEARCH_AFTER,
+      AUTORESEARCH_LOG,
+      AUTORESEARCH_COMPLETE,
+      AUTORESEARCH_ERROR,
+      GOAL_WRITTEN_COMPLETED,
       PRE_LEARN,
       POST_LEARN,
       TEAM_CREATED,

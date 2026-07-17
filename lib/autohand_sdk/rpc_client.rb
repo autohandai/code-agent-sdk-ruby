@@ -3,9 +3,12 @@
 require_relative "event_queue"
 require_relative "transport"
 require_relative "utils"
+require_relative "autoresearch_rpc"
 
 module AutohandSDK
   class RPCClient
+    include AutoresearchRPC
+
     RPC_METHODS = {
       prompt: "autohand.prompt",
       abort: "autohand.abort",
@@ -30,7 +33,24 @@ module AutohandSDK
       remove_hook: "autohand.hooks.removeHook",
       toggle_hook: "autohand.hooks.toggleHook",
       test_hook: "autohand.hooks.testHook",
-      set_hooks_settings: "autohand.hooks.setSettings"
+      set_hooks_settings: "autohand.hooks.setSettings",
+      get_goal: "autohand.goal.get",
+      create_goal: "autohand.goal.create",
+      update_goal: "autohand.goal.update",
+      clear_goal: "autohand.goal.clear",
+      queue_goal: "autohand.goal.queue",
+      start_queued_goal: "autohand.goal.startQueued",
+      list_goal_templates: "autohand.goal.listTemplates",
+      start_autoresearch: "autohand.autoresearch.start",
+      get_autoresearch_status: "autohand.autoresearch.status",
+      stop_autoresearch: "autohand.autoresearch.stop",
+      get_autoresearch_history: "autohand.autoresearch.history",
+      replay_autoresearch: "autohand.autoresearch.replay",
+      rescore_autoresearch: "autohand.autoresearch.rescore",
+      compare_autoresearch: "autohand.autoresearch.compare",
+      get_autoresearch_pareto: "autohand.autoresearch.pareto",
+      pin_autoresearch: "autohand.autoresearch.pin",
+      prune_autoresearch: "autohand.autoresearch.prune"
     }.freeze
 
     NOTIFICATION_EVENT_TYPES = {
@@ -50,7 +70,11 @@ module AutohandSDK
       "autohand.hook.fileModified" => "file_modified",
       "autohand.changesBatchStart" => "changes_batch_start",
       "autohand.changesBatchUpdate" => "changes_batch_update",
-      "autohand.changesBatchEnd" => "changes_batch_end"
+      "autohand.changesBatchEnd" => "changes_batch_end",
+      "autohand.autoresearch.start" => "autoresearch",
+      "autohand.autoresearch.status" => "autoresearch",
+      "autohand.autoresearch.pause" => "autoresearch",
+      "autohand.autoresearch.event" => "autoresearch"
     }.freeze
 
     CAMEL_TO_SNAKE_KEYS = {
@@ -63,7 +87,14 @@ module AutohandSDK
       "filePath" => "file_path",
       "changeType" => "change_type",
       "contextPercent" => "context_percent",
-      "messageCount" => "message_count"
+      "messageCount" => "message_count",
+      "tokensUsed" => "tokens_used",
+      "tokensUsageStatus" => "tokens_usage_status",
+      "durationMs" => "duration_ms",
+      "runsLogged" => "runs_logged",
+      "statusText" => "status_text",
+      "maxIterations" => "max_iterations",
+      "attemptId" => "attempt_id"
     }.freeze
 
     def initialize(config = nil, transport: nil, **)
@@ -149,7 +180,7 @@ module AutohandSDK
     end
 
     def apply_flag_settings(settings)
-      request(RPC_METHODS.fetch(:apply_flag_settings), { "settings" => Utils.with_rpc_aliases(settings) })
+      request(RPC_METHODS.fetch(:apply_flag_settings), { "settings" => camelize_hash(Utils.normalize_hash(settings)) })
     end
 
     def get_context_usage
@@ -198,6 +229,34 @@ module AutohandSDK
 
     def set_hooks_settings(settings)
       request(RPC_METHODS.fetch(:set_hooks_settings), { "settings" => Utils.with_rpc_aliases(settings) })
+    end
+
+    def get_goal
+      request(RPC_METHODS.fetch(:get_goal), {})
+    end
+
+    def create_goal(params)
+      request(RPC_METHODS.fetch(:create_goal), goal_params(params))
+    end
+
+    def update_goal(params)
+      request(RPC_METHODS.fetch(:update_goal), goal_params(params))
+    end
+
+    def clear_goal
+      request(RPC_METHODS.fetch(:clear_goal), {})
+    end
+
+    def queue_goal(params)
+      request(RPC_METHODS.fetch(:queue_goal), goal_params(params))
+    end
+
+    def start_queued_goal
+      request(RPC_METHODS.fetch(:start_queued_goal), {})
+    end
+
+    def list_goal_templates
+      request(RPC_METHODS.fetch(:list_goal_templates), {})
     end
 
     def request(method, params = {})
@@ -273,6 +332,12 @@ module AutohandSDK
       data
     end
 
+    def goal_params(params)
+      Utils.normalize_hash(params).each_with_object({}) do |(key, value), result|
+        result[key.to_s] = value
+      end
+    end
+
     def handle_notification(params)
       method = params["_method"]
       event_type = NOTIFICATION_EVENT_TYPES[method]
@@ -297,6 +362,11 @@ module AutohandSDK
         event[snake] = event[camel] if event.key?(camel) && !event.key?(snake)
       end
       event["type"] = event_type
+      case params["_method"]
+      when "autohand.autoresearch.start" then event["phase"] = "start"
+      when "autohand.autoresearch.status" then event["phase"] = "status"
+      when "autohand.autoresearch.pause" then event["phase"] = "pause"
+      end
       event
     end
   end

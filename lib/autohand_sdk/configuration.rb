@@ -13,7 +13,8 @@ module AutohandSDK
       skill_sources install_missing_skills permission_mode permission_allow_list permission_deny_list plan_mode
       persist_session session_id resume continue_session session_path auto_save_interval context_compact max_tokens
       compression_threshold summarization_threshold copy_skill_files provider api_key base_url autohand_ai_plan
-      env_vars
+      env_vars bare idle_logout fork display_language system_prompt_file append_system_prompt_file mcp_config
+      agents plugin_dir features
     ].freeze
 
     attr_accessor :cwd, :cli_path, :debug, :timeout, :startup_check, :auto_mode, :unrestricted, :auto_skill,
@@ -23,7 +24,8 @@ module AutohandSDK
                   :plan_mode, :persist_session, :session_id, :resume, :continue_session, :session_path,
                   :auto_save_interval, :context_compact, :max_tokens, :compression_threshold,
                   :summarization_threshold, :copy_skill_files, :provider, :api_key, :base_url, :autohand_ai_plan,
-                  :env_vars
+                  :env_vars, :bare, :idle_logout, :fork, :display_language, :system_prompt_file,
+                  :append_system_prompt_file, :mcp_config, :agents, :plugin_dir, :features
     attr_writer :logger
 
     def initialize(**options)
@@ -69,6 +71,7 @@ module AutohandSDK
       @api_key = options[:api_key]
       @base_url = options[:base_url]
       @autohand_ai_plan = options[:autohand_ai_plan]
+      apply_current_cli_options(options)
       @env_vars = raw_env_vars(raw_options, options).transform_keys(&:to_s).transform_values(&:to_s)
       @logger = options[:logger]
 
@@ -121,6 +124,19 @@ module AutohandSDK
         normalized_options[:env_vars] ||
         normalized_options[:env] ||
         {}
+    end
+
+    def apply_current_cli_options(options)
+      @bare = options[:bare]
+      @idle_logout = options[:idle_logout]
+      @fork = options[:fork]
+      @display_language = options[:display_language]
+      @system_prompt_file = options[:system_prompt_file]
+      @append_system_prompt_file = options[:append_system_prompt_file]
+      @mcp_config = options[:mcp_config]
+      @agents = options[:agents]
+      @plugin_dir = options[:plugin_dir]
+      @features = options[:features]
     end
 
     def merge_nested_options(options)

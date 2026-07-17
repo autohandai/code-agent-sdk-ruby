@@ -21,6 +21,7 @@ The gem:
 - Starts the Autohand Code CLI as a subprocess in JSON-RPC mode.
 - Streams agent lifecycle, message, tool, permission, and file-change events.
 - Provides `AutohandSDK::Client` for low-level control and `AutohandSDK::Agent` / `Run` for application code.
+- Exposes slash commands, persistent goals, and the replayable autoresearch ledger through exact JSON-RPC methods.
 - Keeps Rails optional through a Railtie that only loads when Rails is present.
 - Uses Ruby stdlib for runtime behavior; development dependencies stay out of production installs.
 
@@ -108,6 +109,41 @@ result = agent.run("Summarize the public API surface")
 puts result.fetch(:text)
 ```
 
+Run current CLI command surfaces through the same streamed lifecycle:
+
+```ruby
+research = agent.deep_research("Hermes self-evolving systems")
+research.stream.each { |event| puts event["type"] }
+research.wait
+
+if agent.supports_command?("/autoresearch")
+  agent.autoresearch("Improve benchmark accuracy").wait
+end
+```
+
+The typed-in-TypeScript autoresearch ledger is represented as idiomatic Ruby
+hashes while preserving the exact RPC contract:
+
+```ruby
+started = agent.start_autoresearch(
+  objective: "Reduce test runtime without regressions",
+  metric_name: "total_ms",
+  metric_unit: "ms",
+  direction: "lower",
+  measure_command: "bundle exec rake test",
+  checks_command: "bundle exec rubocop",
+  sampling: { min_samples: 3, max_samples: 7 }
+)
+
+history = agent.get_autoresearch_history
+agent.replay_autoresearch(attempt_id: history.fetch("attempts").first.fetch("attemptId"))
+agent.prune_autoresearch(dry_run: true)
+agent.stop_autoresearch if started["success"]
+```
+
+See the [replayable autoresearch guide](docs/autoresearch.md) and
+[complete example](examples/07_autoresearch_ledger.rb).
+
 For JSON output:
 
 ```ruby
@@ -175,6 +211,7 @@ end
 - [Rails Integration](docs/rails.md)
 - [Advanced Patterns](docs/advanced-patterns.md)
 - [SDLC Workflows](docs/sdlc-workflows.md)
+- [Replayable Autoresearch](docs/autoresearch.md)
 
 ## Examples
 
@@ -183,6 +220,7 @@ end
 - [Permission handling](examples/03_permissions.rb)
 - [Structured JSON output](examples/04_structured_json.rb)
 - [Rails initializer](examples/05_rails_initializer.rb)
+- [Replayable autoresearch ledger](examples/07_autoresearch_ledger.rb)
 
 ## Development
 

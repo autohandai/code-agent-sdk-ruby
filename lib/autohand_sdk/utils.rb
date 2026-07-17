@@ -49,5 +49,16 @@ module AutohandSDK
 
       hash[to] = hash.delete(from)
     end
+
+    def format_slash_command(command, args = nil)
+      normalized = command.to_s.strip
+      unless normalized.start_with?("/") && !normalized.match?(/\s/)
+        raise ArgumentError, "invalid slash command: #{command}"
+      end
+
+      values = args.is_a?(Array) ? args : [args]
+      suffix = values.compact.map { |value| value.to_s.strip }.reject(&:empty?).join(" ")
+      suffix.empty? ? normalized : "#{normalized} #{suffix}"
+    end
   end
 end

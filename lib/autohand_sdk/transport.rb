@@ -164,6 +164,7 @@ module AutohandSDK
 
     def build_args
       args = [cli_binary, "--mode", "rpc"]
+      append_current_runtime_options(args)
       append_flag(args, "--unrestricted", @config.unrestricted)
       append_flag(args, "--auto-mode", @config.auto_mode)
       append_flag(args, "--auto-skill", @config.auto_skill)
@@ -201,6 +202,18 @@ module AutohandSDK
       @config.add_dir.each { |directory| append_value(args, "--add-dir", directory) }
       args.concat(@config.extra_args)
       args
+    end
+
+    def append_current_runtime_options(args)
+      append_flag(args, "--bare", @config.bare)
+      args << "--no-idle-logout" if @config.idle_logout == false
+      append_value(args, "--fork", @config.fork)
+      append_value(args, "--system-prompt-file", @config.system_prompt_file)
+      append_value(args, "--append-system-prompt-file", @config.append_system_prompt_file)
+      append_value(args, "--display-language", @config.display_language)
+      append_value(args, "--mcp-config", @config.mcp_config)
+      append_value(args, "--agents", @config.agents)
+      append_value(args, "--plugin-dir", @config.plugin_dir)
     end
 
     def build_environment

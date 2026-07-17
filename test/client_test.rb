@@ -43,7 +43,84 @@ class ClientTest < SDKTestCase
     sdk.start
 
     assert_equal([{ "id" => "test-model" }], sdk.supported_models)
-    assert_equal(%w[model permissions], sdk.supported_commands)
+    assert_equal(%w[/model /permissions /autoresearch], sdk.supported_commands)
+    assert(sdk.supports_command?("/autoresearch"))
+  ensure
+    sdk&.close
+  end
+
+  def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
+    sdk = client
+    sdk.start
+
+    created = sdk.create_goal(objective: "Finish parity", token_budget: 20_000)
+    started = sdk.start_autoresearch(
+      objective: "Reduce test runtime",
+      metric_name: "total_ms",
+      max_iterations: 12,
+      secondary_objectives: [{ name: "memory", unit: "mb", direction: "lower" }],
+      subagents: { idea_generation: true }
+    )
+    replayed = sdk.replay_autoresearch(attempt_id: "attempt-1", evaluator: "current")
+    history = sdk.get_autoresearch_history
+    rescored = sdk.rescore_autoresearch(all: true)
+    compared = sdk.compare_autoresearch(left_attempt_id: "attempt-1", right_attempt_id: "attempt-2")
+    pareto = sdk.get_autoresearch_pareto
+    pinned = sdk.pin_autoresearch(attempt_id: "attempt-1", pinned: true)
+    pruned = sdk.prune_autoresearch(dry_run: true)
+    stopped = sdk.stop_autoresearch
+
+    assert_equal("autohand.goal.create", created.fetch("method"))
+    assert_equal({ "objective" => "Finish parity", "token_budget" => 20_000 }, created.fetch("params"))
+    assert_equal("autohand.autoresearch.start", started.fetch("method"))
+    assert_equal("total_ms", started.dig("params", "metricName"))
+    assert(started.dig("params", "subagents", "ideaGeneration"))
+    assert_equal("attempt-1", replayed.dig("params", "attemptId"))
+    assert_equal("autohand.autoresearch.history", history.fetch("method"))
+    assert(rescored.dig("params", "all"))
+    assert_equal("autohand.autoresearch.compare", compared.fetch("method"))
+    assert_equal("autohand.autoresearch.pareto", pareto.fetch("method"))
+    assert(pinned.dig("params", "pinned"))
+    assert(pruned.dig("params", "dryRun"))
+    assert_equal("autohand.autoresearch.stop", stopped.fetch("method"))
+  ensure
+    sdk&.close
+  end
+
+  def test_autoresearch_notifications_are_normalized_events
+    sdk = client
+    sdk.start
+
+    sdk.get_autoresearch_status
+    event = sdk.instance_variable_get(:@rpc_client).events.first
+
+    assert_equal("autoresearch", event.fetch("type"))
+    assert_equal("status", event.fetch("phase"))
+    assert_equal(12, event.fetch("max_iterations"))
+    assert_equal(3, event.fetch("runs_logged"))
+  ensure
+    sdk&.close
+  end
+
+  def test_agent_command_helpers_use_the_streamed_run_lifecycle
+    agent = AutohandSDK::Agent.create(cli_path: @cli_path, timeout: 2_000)
+
+    result = agent.deep_research("Ruby RPC reliability").wait
+
+    assert_equal("Hello Ruby", result.fetch(:text))
+    assert_raises(ArgumentError) { agent.command("deep-research", "invalid") }
+  ensure
+    agent&.close
+  end
+
+  def test_feature_settings_use_cli_camel_case
+    sdk = client
+    sdk.start
+
+    result = sdk.apply_flag_settings(features: { slash_goal: true, token_usage_status: true })
+
+    assert(result.dig("params", "settings", "features", "slashGoal"))
+    assert(result.dig("params", "settings", "features", "tokenUsageStatus"))
   ensure
     sdk&.close
   end
@@ -53,5 +130,7 @@ class ClientTest < SDKTestCase
     assert_equal("teammate-spawned", AutohandSDK::HookEvents::TEAMMATE_SPAWNED)
     assert_equal("context:critical", AutohandSDK::HookEvents::CONTEXT_CRITICAL)
     assert_includes(AutohandSDK::HookEvents::ALL, "automode:checkpoint")
+    assert_includes(AutohandSDK::HookEvents::ALL, "autoresearch:run")
+    assert_includes(AutohandSDK::HookEvents::ALL, "goal-written:completed")
   end
 end

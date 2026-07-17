@@ -53,4 +53,33 @@ class TransportTest < SDKTestCase
       transport&.stop
     end
   end
+
+  def test_current_runtime_options_map_to_cli_flags
+    transport = AutohandSDK::Transport.new(
+      cli_path: @cli_path,
+      cwd: Dir.pwd,
+      timeout: 2_000,
+      bare: true,
+      idle_logout: false,
+      fork: "session-1",
+      display_language: "en-NZ",
+      system_prompt_file: "SYSTEM.md",
+      append_system_prompt_file: "EXTRA.md",
+      mcp_config: "mcp.json",
+      agents: "agents.json",
+      plugin_dir: ".autohand/plugins"
+    )
+    transport.start
+
+    argv = transport.request("autohand.argv")
+
+    assert_includes(argv, "--bare")
+    assert_includes(argv, "--no-idle-logout")
+    assert_equal("session-1", argv.fetch(argv.index("--fork") + 1))
+    assert_equal("en-NZ", argv.fetch(argv.index("--display-language") + 1))
+    assert_equal("mcp.json", argv.fetch(argv.index("--mcp-config") + 1))
+    assert_equal(".autohand/plugins", argv.fetch(argv.index("--plugin-dir") + 1))
+  ensure
+    transport&.stop
+  end
 end

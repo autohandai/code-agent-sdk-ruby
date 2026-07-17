@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added current CLI runtime flags, feature settings, slash-command helpers, and persistent-goal RPC methods.
+- Added the complete replayable autoresearch lifecycle: start, status, pause, history, replay, rescore, compare, Pareto, pin, and prune.
+- Added autoresearch notifications and hook names, richer turn-usage aliases, documentation, and a runnable ledger example.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

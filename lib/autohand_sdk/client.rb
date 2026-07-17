@@ -47,6 +47,7 @@ module AutohandSDK
       @rpc_client.start
       @started = true
       set_plan_mode(true) if @config.plan_mode || @config.permission_mode == "plan"
+      apply_flag_settings({ features: @config.features }) if @config.features
       self
     end
 
@@ -165,7 +166,20 @@ module AutohandSDK
     def supported_commands
       ensure_started
       result = @rpc_client.get_supported_commands
-      result.is_a?(Hash) ? result.fetch("commands", result.fetch("agents", [])) : result
+      commands = result.is_a?(Hash) ? result.fetch("commands", result.fetch("agents", [])) : result
+      Array(commands).filter_map do |command|
+        next unless command.is_a?(String)
+
+        command.start_with?("/") ? command : "/#{command}"
+      end
+    end
+
+    def supports_command?(command)
+      supported_commands.include?(Utils.format_slash_command(command))
+    end
+
+    def stream_command(command, args = nil, **options, &)
+      stream_prompt(Utils.format_slash_command(command, args), **options, &)
     end
 
     def get_context_usage
@@ -228,6 +242,91 @@ module AutohandSDK
       @rpc_client.set_hooks_settings(settings)
     end
 
+    def get_goal
+      ensure_started
+      @rpc_client.get_goal
+    end
+
+    def create_goal(params = nil, **options)
+      ensure_started
+      @rpc_client.create_goal(merge_params(params, options))
+    end
+
+    def update_goal(params = nil, **options)
+      ensure_started
+      @rpc_client.update_goal(merge_params(params, options))
+    end
+
+    def clear_goal
+      ensure_started
+      @rpc_client.clear_goal
+    end
+
+    def queue_goal(params = nil, **options)
+      ensure_started
+      @rpc_client.queue_goal(merge_params(params, options))
+    end
+
+    def start_queued_goal
+      ensure_started
+      @rpc_client.start_queued_goal
+    end
+
+    def list_goal_templates
+      ensure_started
+      @rpc_client.list_goal_templates
+    end
+
+    def start_autoresearch(params = nil, **options)
+      ensure_started
+      @rpc_client.start_autoresearch(merge_params(params, options))
+    end
+
+    def get_autoresearch_status
+      ensure_started
+      @rpc_client.get_autoresearch_status
+    end
+
+    def stop_autoresearch
+      ensure_started
+      @rpc_client.stop_autoresearch
+    end
+
+    def get_autoresearch_history
+      ensure_started
+      @rpc_client.get_autoresearch_history
+    end
+
+    def replay_autoresearch(params = nil, **options)
+      ensure_started
+      @rpc_client.replay_autoresearch(merge_params(params, options))
+    end
+
+    def rescore_autoresearch(params = nil, **options)
+      ensure_started
+      @rpc_client.rescore_autoresearch(merge_params(params, options))
+    end
+
+    def compare_autoresearch(params = nil, **options)
+      ensure_started
+      @rpc_client.compare_autoresearch(merge_params(params, options))
+    end
+
+    def get_autoresearch_pareto
+      ensure_started
+      @rpc_client.get_autoresearch_pareto
+    end
+
+    def pin_autoresearch(params = nil, **options)
+      ensure_started
+      @rpc_client.pin_autoresearch(merge_params(params, options))
+    end
+
+    def prune_autoresearch(params = nil, **options)
+      ensure_started
+      @rpc_client.prune_autoresearch(merge_params(params, options))
+    end
+
     def started?
       @started
     end
@@ -257,6 +356,13 @@ module AutohandSDK
                  { message: message_or_params.to_s }
                end
       Utils.with_rpc_aliases(params.merge(Utils.normalize_hash(options)))
+    end
+
+    def merge_params(params, options)
+      data = params.nil? ? {} : Utils.normalize_hash(params)
+      raise ArgumentError, "expected a Hash of parameters" unless data.is_a?(Hash)
+
+      data.merge(Utils.normalize_hash(options))
     end
 
     def permission_decision(action, scope)

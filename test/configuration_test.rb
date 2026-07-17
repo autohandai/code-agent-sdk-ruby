@@ -38,4 +38,24 @@ class ConfigurationTest < Minitest::Test
       AutohandSDK::Configuration.new(temperature: 3.0)
     end
   end
+
+  def test_accepts_current_cli_runtime_and_feature_options
+    config = AutohandSDK::Configuration.new(
+      bare: true,
+      idleLogout: false,
+      fork: "session-1",
+      displayLanguage: "en-NZ",
+      systemPromptFile: "SYSTEM.md",
+      appendSystemPromptFile: "EXTRA.md",
+      mcpConfig: "mcp.json",
+      agents: "agents.json",
+      pluginDir: ".autohand/plugins",
+      features: { slash_goal: true }
+    )
+
+    assert(config.bare)
+    refute(config.idle_logout)
+    assert_equal("session-1", config.fork)
+    assert_equal({ slash_goal: true }, config.features)
+  end
 end

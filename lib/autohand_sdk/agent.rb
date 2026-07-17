@@ -163,6 +163,18 @@ module AutohandSDK
       events.each(&block)
     end
 
+    def command(command, args = nil, **options)
+      send(Utils.format_slash_command(command, args), **options)
+    end
+
+    def deep_research(topic, **options)
+      command("/deep-research", topic, **options)
+    end
+
+    def autoresearch(objective, **options)
+      command("/autoresearch", objective, **options)
+    end
+
     def close
       @client.close
     end
