@@ -7,6 +7,7 @@ require "fileutils"
 require "minitest/autorun"
 require "tmpdir"
 
+# rubocop:disable Metrics/ModuleLength -- The inline executable keeps transport tests self-contained.
 module FakeCLI
   module_function
 
@@ -82,6 +83,23 @@ module FakeCLI
             }
           )
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true, active: true, runsLogged: 3 })
+        when "autohand.autoresearch.replay"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            method: "autohand.autoresearch.event",
+            params: {
+              operation: "replay",
+              phase: "complete",
+              success: true,
+              attemptId: params["attemptId"],
+              timestamp: "2026-07-17T00:00:00.000Z"
+            }
+          )
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: { success: true, attemptId: params["attemptId"], method: method, params: params }
+          )
         when "autohand.env"
           puts JSON.generate(
             jsonrpc: "2.0",
@@ -101,6 +119,7 @@ module FakeCLI
     RUBY
   end
 end
+# rubocop:enable Metrics/ModuleLength
 
 class SDKTestCase < Minitest::Test
   def setup

@@ -54,6 +54,12 @@ class ClientTest < SDKTestCase
     sdk.start
 
     created = sdk.create_goal(objective: "Finish parity", token_budget: 20_000)
+    goal = sdk.get_goal
+    updated = sdk.update_goal(status: "paused")
+    cleared = sdk.clear_goal
+    queued = sdk.queue_goal(objective: "Next goal")
+    queue_started = sdk.start_queued_goal
+    templates = sdk.list_goal_templates
     started = sdk.start_autoresearch(
       objective: "Reduce test runtime",
       metric_name: "total_ms",
@@ -72,6 +78,12 @@ class ClientTest < SDKTestCase
 
     assert_equal("autohand.goal.create", created.fetch("method"))
     assert_equal({ "objective" => "Finish parity", "token_budget" => 20_000 }, created.fetch("params"))
+    assert_equal("autohand.goal.get", goal.fetch("method"))
+    assert_equal("paused", updated.dig("params", "status"))
+    assert_equal("autohand.goal.clear", cleared.fetch("method"))
+    assert_equal("autohand.goal.queue", queued.fetch("method"))
+    assert_equal("autohand.goal.startQueued", queue_started.fetch("method"))
+    assert_equal("autohand.goal.listTemplates", templates.fetch("method"))
     assert_equal("autohand.autoresearch.start", started.fetch("method"))
     assert_equal("total_ms", started.dig("params", "metricName"))
     assert(started.dig("params", "subagents", "ideaGeneration"))
@@ -98,6 +110,22 @@ class ClientTest < SDKTestCase
     assert_equal("status", event.fetch("phase"))
     assert_equal(12, event.fetch("max_iterations"))
     assert_equal(3, event.fetch("runs_logged"))
+  ensure
+    sdk&.close
+  end
+
+  def test_autoresearch_operation_notifications_are_normalized_events
+    sdk = client
+    sdk.start
+
+    sdk.replay_autoresearch(attempt_id: "attempt-1", evaluator: "current")
+    event = sdk.instance_variable_get(:@rpc_client).events.first
+
+    assert_equal("autoresearch", event.fetch("type"))
+    assert_equal("replay", event.fetch("operation"))
+    assert_equal("complete", event.fetch("phase"))
+    assert(event.fetch("success"))
+    assert_equal("attempt-1", event.fetch("attempt_id"))
   ensure
     sdk&.close
   end

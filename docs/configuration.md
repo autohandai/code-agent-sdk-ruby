@@ -24,6 +24,11 @@ AutohandSDK::Client.new(
 | `timeout` | RPC request timeout in milliseconds. |
 | `extra_args` | Additional CLI args appended at startup. |
 | `env_vars` | Environment variables forwarded to the subprocess. |
+| `auto_commit` | Pass `-c` for automatic commits. |
+| `agents_md_enable` | Pass `--agents-md` or `--no-agents-md`. |
+| `agents_md_create` | Create AGENTS.md when missing. |
+| `agents_md_path` | Use an explicit AGENTS.md path. |
+| `agents_md_auto_update` | Allow CLI-managed AGENTS.md updates. |
 
 CLI discovery order:
 
@@ -42,6 +47,20 @@ bundle exec autohand-sdk doctor
 ```
 
 Bundler and Ruby runtime variables such as `BUNDLE_GEMFILE`, `RUBYOPT`, `RUBYLIB`, `GEM_HOME`, and `GEM_PATH` are scrubbed before the CLI subprocess starts. This keeps Rails and Bundler apps from accidentally forcing Ruby-specific boot settings into the Autohand CLI process. Use `env_vars` for values you intentionally want to pass.
+
+## Autohand AI provider
+
+```ruby
+AutohandSDK::Client.new(
+  provider: "autohandai",
+  api_key: ENV.fetch("AUTOHAND_AI_API_KEY"),
+  autohand_ai_plan: "cloud"
+)
+```
+
+The SDK maps `api_key`, optional `base_url`, and `autohand_ai_plan` to the
+CLI's `AUTOHAND_AI_*` subprocess environment variables. Credentials are not
+placed on the process command line.
 
 ## Agent behavior
 

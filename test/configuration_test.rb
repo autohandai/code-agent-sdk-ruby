@@ -50,12 +50,22 @@ class ConfigurationTest < Minitest::Test
       mcpConfig: "mcp.json",
       agents: "agents.json",
       pluginDir: ".autohand/plugins",
-      features: { slash_goal: true }
+      features: { slash_goal: true },
+      autoCommit: true,
+      agentsMdEnable: true,
+      agentsMdCreate: true,
+      agentsMdPath: "AGENTS.md",
+      agentsMdAutoUpdate: true
     )
 
     assert(config.bare)
     refute(config.idle_logout)
     assert_equal("session-1", config.fork)
     assert_equal({ slash_goal: true }, config.features)
+    assert(config.auto_commit)
+    assert(config.agents_md_enable)
+    assert(config.agents_md_create)
+    assert_equal("AGENTS.md", config.agents_md_path)
+    assert(config.agents_md_auto_update)
   end
 end

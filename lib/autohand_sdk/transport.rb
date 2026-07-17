@@ -207,6 +207,12 @@ module AutohandSDK
     def append_current_runtime_options(args)
       append_flag(args, "--bare", @config.bare)
       args << "--no-idle-logout" if @config.idle_logout == false
+      append_flag(args, "-c", @config.auto_commit)
+      append_flag(args, "--agents-md-create", @config.agents_md_create)
+      append_flag(args, "--agents-md-auto-update", @config.agents_md_auto_update)
+      args << "--agents-md" if @config.agents_md_enable == true
+      args << "--no-agents-md" if @config.agents_md_enable == false
+      append_value(args, "--agents-md-path", @config.agents_md_path)
       append_value(args, "--fork", @config.fork)
       append_value(args, "--system-prompt-file", @config.system_prompt_file)
       append_value(args, "--append-system-prompt-file", @config.append_system_prompt_file)

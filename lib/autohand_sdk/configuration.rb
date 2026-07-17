@@ -14,7 +14,7 @@ module AutohandSDK
       persist_session session_id resume continue_session session_path auto_save_interval context_compact max_tokens
       compression_threshold summarization_threshold copy_skill_files provider api_key base_url autohand_ai_plan
       env_vars bare idle_logout fork display_language system_prompt_file append_system_prompt_file mcp_config
-      agents plugin_dir features
+      agents plugin_dir features auto_commit agents_md_enable agents_md_create agents_md_path agents_md_auto_update
     ].freeze
 
     attr_accessor :cwd, :cli_path, :debug, :timeout, :startup_check, :auto_mode, :unrestricted, :auto_skill,
@@ -25,7 +25,8 @@ module AutohandSDK
                   :auto_save_interval, :context_compact, :max_tokens, :compression_threshold,
                   :summarization_threshold, :copy_skill_files, :provider, :api_key, :base_url, :autohand_ai_plan,
                   :env_vars, :bare, :idle_logout, :fork, :display_language, :system_prompt_file,
-                  :append_system_prompt_file, :mcp_config, :agents, :plugin_dir, :features
+                  :append_system_prompt_file, :mcp_config, :agents, :plugin_dir, :features, :auto_commit,
+                  :agents_md_enable, :agents_md_create, :agents_md_path, :agents_md_auto_update
     attr_writer :logger
 
     def initialize(**options)
@@ -137,6 +138,11 @@ module AutohandSDK
       @agents = options[:agents]
       @plugin_dir = options[:plugin_dir]
       @features = options[:features]
+      @auto_commit = options[:auto_commit]
+      @agents_md_enable = options[:agents_md_enable]
+      @agents_md_create = options[:agents_md_create]
+      @agents_md_path = options[:agents_md_path]
+      @agents_md_auto_update = options[:agents_md_auto_update]
     end
 
     def merge_nested_options(options)

@@ -67,7 +67,12 @@ class TransportTest < SDKTestCase
       append_system_prompt_file: "EXTRA.md",
       mcp_config: "mcp.json",
       agents: "agents.json",
-      plugin_dir: ".autohand/plugins"
+      plugin_dir: ".autohand/plugins",
+      auto_commit: true,
+      agents_md_enable: true,
+      agents_md_create: true,
+      agents_md_path: "AGENTS.md",
+      agents_md_auto_update: true
     )
     transport.start
 
@@ -79,6 +84,11 @@ class TransportTest < SDKTestCase
     assert_equal("en-NZ", argv.fetch(argv.index("--display-language") + 1))
     assert_equal("mcp.json", argv.fetch(argv.index("--mcp-config") + 1))
     assert_equal(".autohand/plugins", argv.fetch(argv.index("--plugin-dir") + 1))
+    assert_includes(argv, "-c")
+    assert_includes(argv, "--agents-md")
+    assert_includes(argv, "--agents-md-create")
+    assert_includes(argv, "--agents-md-auto-update")
+    assert_equal("AGENTS.md", argv.fetch(argv.index("--agents-md-path") + 1))
   ensure
     transport&.stop
   end
