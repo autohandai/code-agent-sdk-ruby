@@ -276,6 +276,28 @@ module AutohandSDK
     end
   end
 
+  SessionAttachParams = Data.define(:session_id) do
+    def to_rpc
+      { "sessionId" => RPCValidation.string(session_id, "session_id") }
+    end
+  end
+
+  SessionAttachResult = Data.define(:success, :session_id, :workspace_root, :message_count, :error) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session attachment result")
+      count = object["messageCount"]
+      new(
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        session_id: RPCValidation.optional_string(object["sessionId"], "sessionId"),
+        workspace_root: RPCValidation.optional_string(object["workspaceRoot"], "workspaceRoot"),
+        message_count: count.nil? ? nil : RPCValidation.integer(count, "messageCount"),
+        error: RPCValidation.optional_string(object["error"], "error")
+      )
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

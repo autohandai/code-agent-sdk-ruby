@@ -53,6 +53,8 @@ module AutohandSDK
   autoload :SessionDetailsSuccess, "autohand_sdk/rpc_types"
   autoload :SessionDetailsFailure, "autohand_sdk/rpc_types"
   autoload :SessionDetailsResult, "autohand_sdk/rpc_types"
+  autoload :SessionAttachParams, "autohand_sdk/rpc_types"
+  autoload :SessionAttachResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"

@@ -120,6 +120,17 @@ module FakeCLI
               workspaceRoot: Dir.pwd
             }
           )
+        when "autohand.session.attach"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              success: true,
+              sessionId: params.fetch("sessionId"),
+              workspaceRoot: Dir.pwd,
+              messageCount: 7
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

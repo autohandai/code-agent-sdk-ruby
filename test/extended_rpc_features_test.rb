@@ -123,6 +123,25 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_session_attachment_returns_typed_metadata
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.attach_session("session-existing")
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::SessionAttachResult, result)
+      assert_predicate(result, :success?)
+      assert_equal("session-existing", result.session_id)
+      assert_equal(7, result.message_count)
+      assert_equal("autohand.session.attach", request.fetch("method"))
+      assert_equal({ "sessionId" => "session-existing" }, request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log

@@ -76,6 +76,7 @@ module AutohandSDK
       changes_decision: "autohand.changesDecision",
       get_history: "autohand.getHistory",
       get_session: "autohand.getSession",
+      session_attach: "autohand.session.attach",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -360,6 +361,11 @@ module AutohandSDK
     def get_session_details(session_id)
       params = SessionDetailsParams.new(session_id: session_id)
       request(RPC_METHODS.fetch(:get_session), params.to_rpc)
+    end
+
+    def attach_session(session_id)
+      params = SessionAttachParams.new(session_id: session_id)
+      request(RPC_METHODS.fetch(:session_attach), params.to_rpc)
     end
 
     def get_state(params = {})
