@@ -2,6 +2,7 @@
 
 require_relative "configuration"
 require_relative "discovery_types"
+require_relative "rpc_types"
 require_relative "rpc_client"
 require_relative "utils"
 
@@ -106,6 +107,11 @@ module AutohandSDK
     end
 
     alias interrupt abort
+
+    def reset
+      ensure_started
+      ResetResult.from_rpc(@rpc_client.reset(ResetParams.new.to_rpc))
+    end
 
     def permission_response(params = nil, **options)
       ensure_started

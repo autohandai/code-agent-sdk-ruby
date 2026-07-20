@@ -3,6 +3,36 @@
 require_relative "test_helper"
 
 class ClientTest < SDKTestCase
+  class ContractTransport
+    attr_reader :requests
+
+    def initialize(result)
+      @result = result
+      @requests = []
+      @running = false
+    end
+
+    def on_notification(*) = nil
+    def on_termination = nil
+
+    def start
+      @running = true
+      self
+    end
+
+    def stop
+      @running = false
+      self
+    end
+
+    def running? = @running
+
+    def request(method, params)
+      @requests << [method, params]
+      @result
+    end
+  end
+
   class RunProbeClient
     def initialize
       @release = Queue.new
@@ -143,6 +173,19 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_reset_uses_exact_wire_contract_and_decodes_result
+    sdk, transport = contract_client("sessionId" => "session-new")
+
+    result = sdk.reset
+
+    assert_equal([["autohand.reset", {}]], transport.requests)
+    assert_instance_of(AutohandSDK::ResetResult, result)
+    assert_equal("session-new", result.session_id)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :reset)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start
@@ -265,5 +308,11 @@ class ClientTest < SDKTestCase
 
       Thread.pass
     end
+  end
+
+  def contract_client(result)
+    transport = ContractTransport.new(result)
+    rpc_client = AutohandSDK::RPCClient.new({ startup_check: false }, transport: transport)
+    [AutohandSDK::Client.new({ startup_check: false }, rpc_client: rpc_client), transport]
   end
 end

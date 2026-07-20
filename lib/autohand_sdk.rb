@@ -30,6 +30,8 @@ module AutohandSDK
   autoload :McpToolsResult, "autohand_sdk/discovery_types"
   autoload :McpServerConfig, "autohand_sdk/discovery_types"
   autoload :McpServerConfigsResult, "autohand_sdk/discovery_types"
+  autoload :ResetParams, "autohand_sdk/rpc_types"
+  autoload :ResetResult, "autohand_sdk/rpc_types"
 
   class << self
     def config

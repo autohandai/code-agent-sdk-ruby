@@ -41,6 +41,12 @@ Sends a prompt and returns the raw RPC result. Use `stream_prompt` for live outp
 
 Aborts the current operation.
 
+### `#reset`
+
+Calls `autohand.reset` with an empty parameter object and returns an immutable
+`AutohandSDK::ResetResult` with a snake_case `session_id`. `Agent` delegates the
+same method.
+
 ### `#permission_response`
 
 Responds to a permission request event.

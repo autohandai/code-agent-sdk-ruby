@@ -58,6 +58,7 @@ module AutohandSDK
     RPC_METHODS = {
       prompt: "autohand.prompt",
       abort: "autohand.abort",
+      reset: "autohand.reset",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -243,6 +244,10 @@ module AutohandSDK
 
     def abort(params = {})
       request(RPC_METHODS.fetch(:abort), Utils.with_rpc_aliases(params))
+    end
+
+    def reset(params = {})
+      request(RPC_METHODS.fetch(:reset), params)
     end
 
     def permission_response(params)
