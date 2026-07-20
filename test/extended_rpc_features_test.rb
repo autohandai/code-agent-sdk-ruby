@@ -384,6 +384,17 @@ class ExtendedRPCEventsTest < SDKTestCase
     end
   end
 
+  def test_pre_prompt_hook_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::HookPrePromptEvent) }
+
+      assert_equal("hook_pre_prompt", event.type)
+      assert_equal("Review the SDK", event.instruction)
+      assert_equal(%w[README.md lib/autohand_sdk.rb], event.mentioned_files)
+    end
+  end
+
   private
 
   def with_typed_events

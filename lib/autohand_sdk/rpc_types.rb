@@ -682,6 +682,22 @@ module AutohandSDK
     def method = "autohand.hook.postTool"
   end
 
+  HookPrePromptEvent = Data.define(:instruction, :mentioned_files, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "pre-prompt hook event")
+      new(
+        instruction: RPCValidation.string(object.fetch("instruction"), "instruction"),
+        mentioned_files: RPCValidation.array(object.fetch("mentionedFiles"), "mentionedFiles").map do |file|
+          RPCValidation.string(file, "mentioned file")
+        end.freeze,
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_pre_prompt"
+    def method = "autohand.hook.prePrompt"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

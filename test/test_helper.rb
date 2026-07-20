@@ -246,6 +246,15 @@ module FakeCLI
                 timestamp: "2026-07-21T01:08:00.000Z"
               }
             )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.hook.prePrompt",
+              params: {
+                instruction: "Review the SDK",
+                mentionedFiles: %w[README.md lib/autohand_sdk.rb],
+                timestamp: "2026-07-21T01:09:00.000Z"
+              }
+            )
           end
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"
