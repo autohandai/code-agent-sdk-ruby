@@ -3,6 +3,43 @@
 # The immutable RPC request and response values form one public contract.
 # rubocop:disable Metrics/ModuleLength
 module AutohandSDK
+  module RPCValidation
+    module_function
+
+    def object(value, context = "RPC value")
+      return value if value.is_a?(Hash)
+
+      raise TypeError, "#{context} must be an object"
+    end
+
+    def string(value, context)
+      return value if value.is_a?(String)
+
+      raise TypeError, "#{context} must be a string"
+    end
+
+    def boolean(value, context)
+      return value if value.equal?(true) || value.equal?(false)
+
+      raise TypeError, "#{context} must be a boolean"
+    end
+  end
+
+  PermissionAcknowledgementParams = Data.define(:request_id) do
+    def to_rpc
+      { "requestId" => RPCValidation.string(request_id, "request_id") }
+    end
+  end
+
+  PermissionAcknowledgementResult = Data.define(:success) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "permission acknowledgement result")
+      new(success: RPCValidation.boolean(object.fetch("success"), "success"))
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

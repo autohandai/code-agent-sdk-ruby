@@ -70,6 +70,7 @@ module AutohandSDK
       automode_cancel: "autohand.automode.cancel",
       automode_get_log: "autohand.automode.getLog",
       permission_response: "autohand.permissionResponse",
+      permission_acknowledged: "autohand.permissionAcknowledged",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -320,6 +321,11 @@ module AutohandSDK
 
     def permission_response(params)
       request(RPC_METHODS.fetch(:permission_response), normalize_permission_response(params))
+    end
+
+    def acknowledge_permission(request_id)
+      params = PermissionAcknowledgementParams.new(request_id: request_id)
+      request(RPC_METHODS.fetch(:permission_acknowledged), params.to_rpc)
     end
 
     def get_state(params = {})

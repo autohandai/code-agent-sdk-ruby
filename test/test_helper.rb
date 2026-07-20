@@ -34,6 +34,9 @@ module FakeCLI
         id = request.fetch("id")
         method = request.fetch("method")
         params = request["params"] || {}
+        if (request_log = ENV["AUTOHAND_TEST_REQUEST_LOG"])
+          File.open(request_log, "a") { |file| file.puts(JSON.generate(request)) }
+        end
 
         case method
         when "autohand.getState"
@@ -57,6 +60,8 @@ module FakeCLI
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { content: "Hello Ruby", sessionId: "session_test" })
         when "autohand.permissionResponse"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { received: params })
+        when "autohand.permissionAcknowledged"
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true })
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

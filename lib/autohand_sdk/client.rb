@@ -184,6 +184,11 @@ module AutohandSDK
       @rpc_client.permission_response(data)
     end
 
+    def acknowledge_permission(request_id)
+      ensure_started
+      PermissionAcknowledgementResult.from_rpc(@rpc_client.acknowledge_permission(request_id))
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end
