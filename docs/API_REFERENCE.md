@@ -94,6 +94,12 @@ operation-result model.
 Calls `autohand.automode.cancel`. The optional reason is omitted from the wire
 payload when it is `nil`, and the return value uses the operation-result model.
 
+### `#get_automode_log(limit: nil)`
+
+Calls `autohand.automode.getLog` and returns `AutomodeGetLogResult`. Each
+immutable iteration exposes its timestamp and actions plus optional token use,
+cost, and checkpoint metadata.
+
 ### `#permission_response`
 
 Responds to a permission request event.

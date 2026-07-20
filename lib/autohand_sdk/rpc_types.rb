@@ -182,5 +182,50 @@ module AutohandSDK
     end
   end
   AutomodeCancelResult = AutomodeOperationResult
+
+  AutomodeGetLogParams = Data.define(:limit) do
+    def to_rpc
+      { "limit" => limit }.compact
+    end
+  end
+
+  AutomodeLogCheckpoint = Data.define(:commit, :message) do
+    def self.from_rpc(value)
+      new(commit: value.fetch("commit").to_s, message: value.fetch("message").to_s)
+    end
+  end
+
+  AutomodeIterationLog = Data.define(
+    :iteration,
+    :timestamp,
+    :actions,
+    :tokens_used,
+    :cost,
+    :checkpoint
+  ) do
+    def self.from_rpc(value)
+      checkpoint = value["checkpoint"]
+      new(
+        iteration: Integer(value.fetch("iteration")),
+        timestamp: value.fetch("timestamp").to_s,
+        actions: Array(value.fetch("actions")).map(&:to_s).freeze,
+        tokens_used: value["tokensUsed"],
+        cost: value["cost"],
+        checkpoint: checkpoint.nil? ? nil : AutomodeLogCheckpoint.from_rpc(checkpoint)
+      )
+    end
+  end
+
+  AutomodeGetLogResult = Data.define(:success, :iterations, :error) do
+    def self.from_rpc(value)
+      new(
+        success: value.fetch("success"),
+        iterations: Array(value.fetch("iterations")).map { |entry| AutomodeIterationLog.from_rpc(entry) }.freeze,
+        error: value["error"]
+      )
+    end
+
+    alias_method :success?, :success
+  end
 end
 # rubocop:enable Metrics/ModuleLength

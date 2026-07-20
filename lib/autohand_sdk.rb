@@ -51,6 +51,10 @@ module AutohandSDK
   autoload :AutomodeResumeResult, "autohand_sdk/rpc_types"
   autoload :AutomodeCancelParams, "autohand_sdk/rpc_types"
   autoload :AutomodeCancelResult, "autohand_sdk/rpc_types"
+  autoload :AutomodeGetLogParams, "autohand_sdk/rpc_types"
+  autoload :AutomodeLogCheckpoint, "autohand_sdk/rpc_types"
+  autoload :AutomodeIterationLog, "autohand_sdk/rpc_types"
+  autoload :AutomodeGetLogResult, "autohand_sdk/rpc_types"
 
   class << self
     def config

@@ -173,6 +173,11 @@ module AutohandSDK
       AutomodeCancelResult.from_rpc(@rpc_client.cancel_automode(reason: reason))
     end
 
+    def get_automode_log(limit: nil)
+      ensure_started
+      AutomodeGetLogResult.from_rpc(@rpc_client.get_automode_log(limit: limit))
+    end
+
     def permission_response(params = nil, **options)
       ensure_started
       data = params.is_a?(Hash) ? params.merge(options) : options

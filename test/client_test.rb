@@ -354,6 +354,32 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_get_automode_log_uses_exact_wire_contract_and_decodes_result
+    wire_result = {
+      "success" => true,
+      "iterations" => [{
+        "iteration" => 3,
+        "timestamp" => "2026-07-20T00:03:00.000Z",
+        "actions" => ["Edited lib/app.rb", "Ran tests"],
+        "tokensUsed" => 1_200,
+        "cost" => 0.42,
+        "checkpoint" => { "commit" => "def456", "message" => "iteration 3" }
+      }]
+    }
+    sdk, transport = contract_client(wire_result)
+
+    result = sdk.get_automode_log(limit: 5)
+
+    assert_equal([["autohand.automode.getLog", { "limit" => 5 }]], transport.requests)
+    assert_instance_of(AutohandSDK::AutomodeGetLogResult, result)
+    assert_predicate(result, :success?)
+    assert_equal(1_200, result.iterations.first.tokens_used)
+    assert_equal("def456", result.iterations.first.checkpoint.commit)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :get_automode_log)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start
