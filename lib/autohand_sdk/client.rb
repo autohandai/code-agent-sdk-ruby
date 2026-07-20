@@ -211,6 +211,11 @@ module AutohandSDK
       ChangesDecisionResult.from_rpc(result)
     end
 
+    def get_session_history(page: nil, page_size: nil)
+      ensure_started
+      SessionHistoryResult.from_rpc(@rpc_client.get_session_history(page: page, page_size: page_size))
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

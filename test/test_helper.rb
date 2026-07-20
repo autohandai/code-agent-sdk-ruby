@@ -77,6 +77,25 @@ module FakeCLI
               errors: [{ changeId: "change-skipped", error: "conflict" }]
             }
           )
+        when "autohand.getHistory"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              sessions: [{
+                sessionId: "session-42",
+                createdAt: "2026-07-20T00:00:00.000Z",
+                lastActiveAt: "2026-07-21T00:00:00.000Z",
+                projectName: "tin-wrapper",
+                model: "test-model",
+                messageCount: 12,
+                status: "completed"
+              }],
+              currentPage: params.fetch("page", 1),
+              totalPages: 3,
+              totalItems: 25
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

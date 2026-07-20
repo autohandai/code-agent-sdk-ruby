@@ -80,6 +80,26 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_session_history_maps_pagination_and_typed_entries
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.get_session_history(page: 2, page_size: 10)
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::SessionHistoryResult, result)
+      assert_equal(2, result.current_page)
+      assert_equal(25, result.total_items)
+      assert_instance_of(AutohandSDK::SessionHistoryEntry, result.sessions.first)
+      assert_equal("completed", result.sessions.first.status)
+      assert_equal("autohand.getHistory", request.fetch("method"))
+      assert_equal({ "page" => 2, "pageSize" => 10 }, request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log

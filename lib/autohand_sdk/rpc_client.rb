@@ -74,6 +74,7 @@ module AutohandSDK
       directory_access_response: "autohand.directoryAccessResponse",
       directory_access_acknowledged: "autohand.directoryAccessAcknowledged",
       changes_decision: "autohand.changesDecision",
+      get_history: "autohand.getHistory",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -348,6 +349,11 @@ module AutohandSDK
         selected_change_ids: selected_change_ids
       )
       request(RPC_METHODS.fetch(:changes_decision), params.to_rpc)
+    end
+
+    def get_session_history(page: nil, page_size: nil)
+      params = SessionHistoryParams.new(page: page, page_size: page_size)
+      request(RPC_METHODS.fetch(:get_history), params.to_rpc)
     end
 
     def get_state(params = {})

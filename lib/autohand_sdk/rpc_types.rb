@@ -137,6 +137,54 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  SESSION_HISTORY_STATUSES = %w[active completed crashed].freeze
+
+  SessionHistoryParams = Data.define(:page, :page_size) do
+    def to_rpc
+      {
+        "page" => page.nil? ? nil : RPCValidation.integer(page, "page"),
+        "pageSize" => page_size.nil? ? nil : RPCValidation.integer(page_size, "page_size")
+      }.compact
+    end
+  end
+
+  SessionHistoryEntry = Data.define(
+    :session_id,
+    :created_at,
+    :last_active_at,
+    :project_name,
+    :model,
+    :message_count,
+    :status
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session history entry")
+      new(
+        session_id: RPCValidation.string(object.fetch("sessionId"), "sessionId"),
+        created_at: RPCValidation.string(object.fetch("createdAt"), "createdAt"),
+        last_active_at: RPCValidation.string(object.fetch("lastActiveAt"), "lastActiveAt"),
+        project_name: RPCValidation.string(object.fetch("projectName"), "projectName"),
+        model: RPCValidation.string(object.fetch("model"), "model"),
+        message_count: RPCValidation.integer(object.fetch("messageCount"), "messageCount"),
+        status: RPCValidation.enum(object.fetch("status"), SESSION_HISTORY_STATUSES, "status")
+      )
+    end
+  end
+
+  SessionHistoryResult = Data.define(:sessions, :current_page, :total_pages, :total_items) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session history result")
+      new(
+        sessions: RPCValidation.array(object.fetch("sessions"), "sessions").map do |entry|
+          SessionHistoryEntry.from_rpc(entry)
+        end.freeze,
+        current_page: RPCValidation.integer(object.fetch("currentPage"), "currentPage"),
+        total_pages: RPCValidation.integer(object.fetch("totalPages"), "totalPages"),
+        total_items: RPCValidation.integer(object.fetch("totalItems"), "totalItems")
+      )
+    end
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}
