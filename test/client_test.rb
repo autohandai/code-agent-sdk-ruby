@@ -230,6 +230,20 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_attach_latest_browser_handoff_uses_exact_wire_contract_and_decodes_result
+    sdk, transport = contract_client("success" => false)
+
+    result = sdk.attach_latest_browser_handoff
+
+    assert_equal([["autohand.browserHandoff.attachLatest", {}]], transport.requests)
+    assert_instance_of(AutohandSDK::BrowserHandoffAttachResult, result)
+    refute_predicate(result, :success?)
+    assert_nil(result.session_id)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :attach_latest_browser_handoff)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start

@@ -62,6 +62,7 @@ module AutohandSDK
       reset: "autohand.reset",
       browser_handoff_create: "autohand.browserHandoff.create",
       browser_handoff_attach: "autohand.browserHandoff.attach",
+      browser_handoff_attach_latest: "autohand.browserHandoff.attachLatest",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -261,6 +262,11 @@ module AutohandSDK
     def attach_browser_handoff(token)
       params = BrowserHandoffAttachParams.new(token: token)
       request(RPC_METHODS.fetch(:browser_handoff_attach), params.to_rpc)
+    end
+
+    def attach_latest_browser_handoff
+      params = BrowserHandoffAttachLatestParams.new
+      request(RPC_METHODS.fetch(:browser_handoff_attach_latest), params.to_rpc)
     end
 
     def permission_response(params)

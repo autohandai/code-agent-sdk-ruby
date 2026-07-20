@@ -60,6 +60,11 @@ Calls `autohand.browserHandoff.attach` with the required token and returns a
 `success? == false` results; successful results expose optional session,
 workspace, and message-count fields.
 
+### `#attach_latest_browser_handoff`
+
+Calls `autohand.browserHandoff.attachLatest` with an empty parameter object and
+returns the same attachment-result model for the newest non-expired handoff.
+
 ### `#permission_response`
 
 Responds to a permission request event.

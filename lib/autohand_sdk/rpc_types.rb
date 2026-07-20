@@ -57,4 +57,11 @@ module AutohandSDK
 
     alias_method :success?, :success
   end
+
+  BrowserHandoffAttachLatestParams = Data.define do
+    def to_rpc
+      {}
+    end
+  end
+  BrowserHandoffAttachLatestResult = BrowserHandoffAttachResult
 end
