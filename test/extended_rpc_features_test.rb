@@ -331,6 +331,17 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_auto_mode_error_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::AutomodeErrorEvent) }
+
+      assert_equal("automode_error", event.type)
+      assert_equal("automode-2", event.session_id)
+      assert_equal("iteration budget exceeded", event.error)
+    end
+  end
+
   private
 
   def with_request_log

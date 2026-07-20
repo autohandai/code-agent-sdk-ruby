@@ -215,6 +215,15 @@ module FakeCLI
                 timestamp: "2026-07-21T01:05:00.000Z"
               }
             )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.automode.error",
+              params: {
+                sessionId: "automode-2",
+                error: "iteration budget exceeded",
+                timestamp: "2026-07-21T01:06:00.000Z"
+              }
+            )
           end
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"

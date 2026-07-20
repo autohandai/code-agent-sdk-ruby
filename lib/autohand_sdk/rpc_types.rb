@@ -629,6 +629,20 @@ module AutohandSDK
     def method = "autohand.automode.complete"
   end
 
+  AutomodeErrorEvent = Data.define(:session_id, :error, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "auto-mode error event")
+      new(
+        session_id: RPCValidation.string(object.fetch("sessionId"), "sessionId"),
+        error: RPCValidation.string(object.fetch("error"), "error"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "automode_error"
+    def method = "autohand.automode.error"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}
