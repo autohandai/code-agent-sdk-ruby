@@ -63,6 +63,7 @@ module AutohandSDK
       browser_handoff_create: "autohand.browserHandoff.create",
       browser_handoff_attach: "autohand.browserHandoff.attach",
       browser_handoff_attach_latest: "autohand.browserHandoff.attachLatest",
+      automode_start: "autohand.automode.start",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -268,6 +269,29 @@ module AutohandSDK
       params = BrowserHandoffAttachLatestParams.new
       request(RPC_METHODS.fetch(:browser_handoff_attach_latest), params.to_rpc)
     end
+
+    # rubocop:disable Metrics/ParameterLists
+    def start_automode(
+      prompt,
+      max_iterations: nil,
+      completion_promise: nil,
+      use_worktree: nil,
+      checkpoint_interval: nil,
+      max_runtime: nil,
+      max_cost: nil
+    )
+      params = AutomodeStartParams.new(
+        prompt: prompt,
+        max_iterations: max_iterations,
+        completion_promise: completion_promise,
+        use_worktree: use_worktree,
+        checkpoint_interval: checkpoint_interval,
+        max_runtime: max_runtime,
+        max_cost: max_cost
+      )
+      request(RPC_METHODS.fetch(:automode_start), params.to_rpc)
+    end
+    # rubocop:enable Metrics/ParameterLists
 
     def permission_response(params)
       request(RPC_METHODS.fetch(:permission_response), normalize_permission_response(params))

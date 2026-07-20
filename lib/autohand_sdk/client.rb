@@ -129,6 +129,30 @@ module AutohandSDK
       BrowserHandoffAttachLatestResult.from_rpc(@rpc_client.attach_latest_browser_handoff)
     end
 
+    # rubocop:disable Metrics/ParameterLists
+    def start_automode(
+      prompt,
+      max_iterations: nil,
+      completion_promise: nil,
+      use_worktree: nil,
+      checkpoint_interval: nil,
+      max_runtime: nil,
+      max_cost: nil
+    )
+      ensure_started
+      result = @rpc_client.start_automode(
+        prompt,
+        max_iterations: max_iterations,
+        completion_promise: completion_promise,
+        use_worktree: use_worktree,
+        checkpoint_interval: checkpoint_interval,
+        max_runtime: max_runtime,
+        max_cost: max_cost
+      )
+      AutomodeStartResult.from_rpc(result)
+    end
+    # rubocop:enable Metrics/ParameterLists
+
     def permission_response(params = nil, **options)
       ensure_started
       data = params.is_a?(Hash) ? params.merge(options) : options

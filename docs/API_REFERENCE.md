@@ -65,6 +65,13 @@ workspace, and message-count fields.
 Calls `autohand.browserHandoff.attachLatest` with an empty parameter object and
 returns the same attachment-result model for the newest non-expired handoff.
 
+### `#start_automode(prompt, **options)`
+
+Calls `autohand.automode.start`. The optional `max_iterations`,
+`completion_promise`, `use_worktree`, `checkpoint_interval`, `max_runtime`, and
+`max_cost` keywords are emitted with exact lower-camel-case wire keys. The
+return value is an `AutomodeStartResult`.
+
 ### `#permission_response`
 
 Responds to a permission request event.

@@ -244,6 +244,41 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_start_automode_uses_exact_wire_contract_and_decodes_result
+    sdk, transport = contract_client("success" => true, "sessionId" => "auto-1")
+
+    result = sdk.start_automode(
+      "Ship the release",
+      max_iterations: 20,
+      completion_promise: "DONE",
+      use_worktree: false,
+      checkpoint_interval: 5,
+      max_runtime: 60,
+      max_cost: 2.5
+    )
+
+    assert_equal(
+      [[
+        "autohand.automode.start",
+        {
+          "prompt" => "Ship the release",
+          "maxIterations" => 20,
+          "completionPromise" => "DONE",
+          "useWorktree" => false,
+          "checkpointInterval" => 5,
+          "maxRuntime" => 60,
+          "maxCost" => 2.5
+        }
+      ]],
+      transport.requests
+    )
+    assert_instance_of(AutohandSDK::AutomodeStartResult, result)
+    assert_equal("auto-1", result.session_id)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :start_automode)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start

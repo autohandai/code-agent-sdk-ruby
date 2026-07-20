@@ -64,4 +64,34 @@ module AutohandSDK
     end
   end
   BrowserHandoffAttachLatestResult = BrowserHandoffAttachResult
+
+  AutomodeStartParams = Data.define(
+    :prompt,
+    :max_iterations,
+    :completion_promise,
+    :use_worktree,
+    :checkpoint_interval,
+    :max_runtime,
+    :max_cost
+  ) do
+    def to_rpc
+      {
+        "prompt" => prompt.to_s,
+        "maxIterations" => max_iterations,
+        "completionPromise" => completion_promise,
+        "useWorktree" => use_worktree,
+        "checkpointInterval" => checkpoint_interval,
+        "maxRuntime" => max_runtime,
+        "maxCost" => max_cost
+      }.compact
+    end
+  end
+
+  AutomodeStartResult = Data.define(:success, :session_id, :error) do
+    def self.from_rpc(value)
+      new(success: value.fetch("success"), session_id: value["sessionId"], error: value["error"])
+    end
+
+    alias_method :success?, :success
+  end
 end
