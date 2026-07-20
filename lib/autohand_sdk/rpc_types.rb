@@ -698,6 +698,36 @@ module AutohandSDK
     def method = "autohand.hook.prePrompt"
   end
 
+  TOKEN_USAGE_STATUSES = %w[actual unavailable].freeze
+
+  HookPostResponseEvent = Data.define(
+    :tokens_used,
+    :tokens_usage_status,
+    :tool_calls_count,
+    :duration,
+    :timestamp
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "post-response hook event")
+      usage_status = object["tokensUsageStatus"]
+      normalized_usage_status = if usage_status.nil?
+                                  nil
+                                else
+                                  RPCValidation.enum(usage_status, TOKEN_USAGE_STATUSES, "tokensUsageStatus")
+                                end
+      new(
+        tokens_used: RPCValidation.integer(object.fetch("tokensUsed"), "tokensUsed"),
+        tokens_usage_status: normalized_usage_status,
+        tool_calls_count: RPCValidation.integer(object.fetch("toolCallsCount"), "toolCallsCount"),
+        duration: RPCValidation.number(object.fetch("duration"), "duration"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_post_response"
+    def method = "autohand.hook.postResponse"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

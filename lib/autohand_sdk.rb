@@ -89,6 +89,8 @@ module AutohandSDK
   autoload :HookPreToolEvent, "autohand_sdk/rpc_types"
   autoload :HookPostToolEvent, "autohand_sdk/rpc_types"
   autoload :HookPrePromptEvent, "autohand_sdk/rpc_types"
+  autoload :TOKEN_USAGE_STATUSES, "autohand_sdk/rpc_types"
+  autoload :HookPostResponseEvent, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"

@@ -395,6 +395,19 @@ class ExtendedRPCEventsTest < SDKTestCase
     end
   end
 
+  def test_post_response_hook_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::HookPostResponseEvent) }
+
+      assert_equal("hook_post_response", event.type)
+      assert_equal(1_250, event.tokens_used)
+      assert_equal("actual", event.tokens_usage_status)
+      assert_equal(2, event.tool_calls_count)
+      assert_in_delta(415.2, event.duration)
+    end
+  end
+
   private
 
   def with_typed_events
