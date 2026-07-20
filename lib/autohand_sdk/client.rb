@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 require_relative "configuration"
+require_relative "discovery_types"
 require_relative "rpc_client"
 require_relative "utils"
 
 module AutohandSDK
+  # The public client intentionally keeps lifecycle and CLI capability methods together.
+  # rubocop:disable Metrics/ClassLength
   class Client
     PERMISSION_SCOPE_DECISIONS = {
       allow: {
@@ -27,6 +30,7 @@ module AutohandSDK
       @config = Configuration.from(config, **)
       @rpc_client = rpc_client || RPCClient.new(@config)
       @started = false
+      @lifecycle_mutex = Mutex.new
     end
 
     def self.open(config = nil, **)
@@ -42,21 +46,35 @@ module AutohandSDK
     end
 
     def start
-      return self if @started
+      @lifecycle_mutex.synchronize do
+        return self if started?
 
-      @rpc_client.start
-      @started = true
-      set_plan_mode(true) if @config.plan_mode || @config.permission_mode == "plan"
-      apply_flag_settings({ features: @config.features }) if @config.features
-      self
+        @rpc_client.start
+        @started = true
+        plan_mode = @config.permission_mode == "plan" ? true : @config.plan_mode
+        @rpc_client.set_plan_mode(plan_mode) unless plan_mode.nil?
+        @rpc_client.apply_flag_settings({ features: @config.features }) if @config.features
+        self
+      rescue StandardError
+        @started = false
+        begin
+          @rpc_client.stop
+        rescue StandardError
+          nil
+        end
+        raise
+      end
     end
 
     def stop
-      return self unless @started
+      @lifecycle_mutex.synchronize do
+        return self unless @started || rpc_running?
 
-      @rpc_client.stop
-      @started = false
-      self
+        @rpc_client.stop
+        self
+      ensure
+        @started = false
+      end
     end
 
     alias close stop
@@ -172,6 +190,38 @@ module AutohandSDK
 
         command.start_with?("/") ? command : "/#{command}"
       end
+    end
+
+    def get_skills_registry(force_refresh: nil)
+      ensure_started
+      result = @rpc_client.get_skills_registry(force_refresh: force_refresh)
+      SkillsRegistryResult.from_rpc(result)
+    end
+
+    def install_skill(skill_name, scope:, force: nil)
+      normalized_scope = scope.to_s
+      unless %w[user project].include?(normalized_scope)
+        raise ArgumentError, "skill scope must be one of: user, project"
+      end
+
+      ensure_started
+      result = @rpc_client.install_skill(skill_name, scope: normalized_scope, force: force)
+      InstallSkillResult.from_rpc(result)
+    end
+
+    def list_mcp_servers
+      ensure_started
+      McpServersResult.from_rpc(@rpc_client.list_mcp_servers)
+    end
+
+    def list_mcp_tools(server_name: nil)
+      ensure_started
+      McpToolsResult.from_rpc(@rpc_client.list_mcp_tools(server_name: server_name))
+    end
+
+    def get_mcp_server_configs
+      ensure_started
+      McpServerConfigsResult.from_rpc(@rpc_client.get_mcp_server_configs)
     end
 
     def supports_command?(command)
@@ -328,7 +378,7 @@ module AutohandSDK
     end
 
     def started?
-      @started
+      @started && rpc_running?
     end
 
     def connected?
@@ -336,17 +386,25 @@ module AutohandSDK
     end
 
     def update_config(**)
-      raise ConfigurationError, "update_config must be called before start" if started?
+      @lifecycle_mutex.synchronize do
+        raise ConfigurationError, "update_config must be called before start" if started?
 
-      @config = @config.merge(**)
-      @rpc_client = RPCClient.new(@config)
-      self
+        @config = @config.merge(**)
+        @rpc_client = RPCClient.new(@config)
+        self
+      end
     end
 
     private
 
     def ensure_started
-      start unless @started
+      start unless started?
+    end
+
+    def rpc_running?
+      return @rpc_client.running? if @rpc_client.respond_to?(:running?)
+
+      @started
     end
 
     def prompt_params(message_or_params, **options)
@@ -371,4 +429,5 @@ module AutohandSDK
       raise ArgumentError, "permission scope must be one of: once, session, project, user"
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

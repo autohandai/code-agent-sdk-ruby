@@ -3,6 +3,39 @@
 require_relative "test_helper"
 
 class ClientTest < SDKTestCase
+  class RunProbeClient
+    def initialize
+      @release = Queue.new
+      @abort_calls = 0
+      @mutex = Mutex.new
+    end
+
+    def stream_prompt(_params)
+      Enumerator.new do |yielder|
+        completed = false
+        begin
+          yielder << { "type" => "turn_start", "turn_id" => "probe-turn" }
+          @release.pop
+          yielder << { "type" => "message_update", "delta" => "done" }
+          yielder << { "type" => "agent_end", "reason" => "completed" }
+          completed = true
+        ensure
+          @mutex.synchronize { @abort_calls += 1 } unless completed
+        end
+      end
+    end
+
+    def release
+      @release << true
+    end
+
+    def abort_calls
+      @mutex.synchronize { @abort_calls }
+    end
+
+    alias close release
+  end
+
   def test_stream_prompt_yields_normalized_events
     sdk = client
     sdk.start
@@ -24,6 +57,67 @@ class ClientTest < SDKTestCase
     assert(result.fetch(:events).any? { |event| event["type"] == "message_end" })
   ensure
     agent&.close
+  end
+
+  def test_run_stream_abandonment_unwinds_and_joins_the_prompt_pump
+    probe = RunProbeClient.new
+    run = AutohandSDK::Run.new(probe, { "message" => "hello" })
+
+    event = run.stream.first
+    pump = run.instance_variable_get(:@thread)
+
+    assert_equal("turn_start", event.fetch("type"))
+    assert_equal(1, probe.abort_calls)
+    refute_predicate(pump, :alive?)
+    assert_equal("aborted", run.wait.fetch(:status))
+  ensure
+    probe&.release
+    pump&.kill if pump&.alive?
+  end
+
+  def test_one_stream_can_leave_while_another_consumer_finishes_the_run
+    probe = RunProbeClient.new
+    run = AutohandSDK::Run.new(probe, { "message" => "hello" })
+    events = nil
+    remaining_consumer = Thread.new { events = run.stream.to_a }
+    wait_until { run.instance_variable_get(:@active_streams) == 1 }
+
+    assert_equal("turn_start", run.stream.first.fetch("type"))
+    assert_equal(0, probe.abort_calls)
+
+    probe.release
+
+    assert(remaining_consumer.join(1), "remaining stream consumer did not settle")
+    assert_includes(events.map { |event| event["type"] }, "agent_end")
+    assert_equal("done", run.wait.fetch(:text))
+    assert_equal(0, probe.abort_calls)
+  ensure
+    probe&.release
+    remaining_consumer&.kill
+    pump = run&.instance_variable_get(:@thread)
+    pump&.kill if pump&.alive?
+  end
+
+  def test_stream_abandonment_does_not_cancel_an_active_waiter
+    probe = RunProbeClient.new
+    run = AutohandSDK::Run.new(probe, { "message" => "hello" })
+    result = nil
+    waiter = Thread.new { result = run.wait }
+    wait_until { run.instance_variable_get(:@waiters) == 1 }
+
+    assert_equal("turn_start", run.stream.first.fetch("type"))
+    assert_equal(0, probe.abort_calls)
+
+    probe.release
+
+    assert(waiter.join(1), "run waiter did not settle")
+    assert_equal("done", result.fetch(:text))
+    assert_equal(0, probe.abort_calls)
+  ensure
+    probe&.release
+    waiter&.kill
+    pump = run&.instance_variable_get(:@thread)
+    pump&.kill if pump&.alive?
   end
 
   def test_permission_helpers_use_scoped_decisions
@@ -160,5 +254,16 @@ class ClientTest < SDKTestCase
     assert_includes(AutohandSDK::HookEvents::ALL, "automode:checkpoint")
     assert_includes(AutohandSDK::HookEvents::ALL, "autoresearch:run")
     assert_includes(AutohandSDK::HookEvents::ALL, "goal-written:completed")
+  end
+
+  private
+
+  def wait_until
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 1
+    until yield
+      raise "condition not reached" if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+      Thread.pass
+    end
   end
 end

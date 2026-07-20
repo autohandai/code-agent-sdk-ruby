@@ -65,6 +65,60 @@ module FakeCLI
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { models: [{ id: "test-model" }] })
         when "autohand.getSupportedCommands"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { commands: ["model", "/permissions", "autoresearch"] })
+        when "autohand.getSkillsRegistry"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              success: true,
+              skills: [{
+                id: "typescript",
+                name: "TypeScript",
+                description: "Typed JavaScript",
+                category: "language",
+                downloadCount: 42,
+                isCurated: true
+              }],
+              categories: [{ name: "language", count: 1 }]
+            }
+          )
+        when "autohand.installSkill"
+          success = params["skillName"] != "existing"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: success ? {
+              success: true,
+              skillName: params["skillName"],
+              path: "/skills/\#{params["scope"]}/\#{params["skillName"]}"
+            } : { success: false, error: "already installed" }
+          )
+        when "autohand.mcp.listServers"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: { servers: [{ name: "github", status: "connected", toolCount: 3 }] }
+          )
+        when "autohand.mcp.listTools"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: { tools: [{ name: "issues", description: "List issues", serverName: params["serverName"] || "github" }] }
+          )
+        when "autohand.mcp.getServerConfigs"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              configs: [{
+                name: "github",
+                transport: "http",
+                url: "https://example.test/mcp",
+                headers: { Authorization: "test" },
+                autoConnect: true
+              }]
+            }
+          )
         when "autohand.argv"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: ARGV)
         when "autohand.autoresearch.status"

@@ -11,7 +11,12 @@ require_relative "cli_installer"
 require_relative "errors"
 
 module AutohandSDK
+  # Process-generation ownership and JSON-RPC framing are kept together deliberately.
+  # rubocop:disable Metrics/ClassLength
   class Transport
+    PROCESS_STOP_TIMEOUT = 1.0
+    READER_JOIN_TIMEOUT = 0.5
+
     class Waiter
       def initialize
         @mutex = Mutex.new
@@ -23,6 +28,8 @@ module AutohandSDK
 
       def resolve(value)
         @mutex.synchronize do
+          return if @resolved
+
           @resolved = true
           @value = value
           @condition.broadcast
@@ -31,6 +38,8 @@ module AutohandSDK
 
       def reject(error)
         @mutex.synchronize do
+          return if @resolved
+
           @resolved = true
           @error = error
           @condition.broadcast
@@ -55,7 +64,17 @@ module AutohandSDK
       end
     end
 
-    attr_reader :stderr_tail
+    Generation = Struct.new(
+      :id,
+      :stdin,
+      :stdout,
+      :stderr,
+      :wait_thread,
+      :stdout_thread,
+      :stderr_thread,
+      :stopping,
+      keyword_init: true
+    )
 
     def initialize(config = nil, **)
       @config = Configuration.from(config, **)
@@ -63,51 +82,69 @@ module AutohandSDK
       @pending = {}
       @pending_mutex = Mutex.new
       @notification_callbacks = Hash.new { |hash, key| hash[key] = [] }
+      @termination_callbacks = []
+      @callbacks_mutex = Mutex.new
       @stderr_lines = []
       @stderr_tail = ""
-      @running = false
+      @stderr_mutex = Mutex.new
+      @state_mutex = Mutex.new
+      @lifecycle_mutex = Mutex.new
+      @write_mutex = Mutex.new
+      @generation_sequence = 0
+      @generation = nil
+    end
+
+    def stderr_tail
+      @stderr_mutex.synchronize { @stderr_tail.dup }
+    end
+
+    def generation_id
+      current_generation&.id
     end
 
     def start
-      return if running?
+      @lifecycle_mutex.synchronize do
+        return self if running?
 
-      copy_skill_files if @config.copy_skill_files && (@config.skills.any? || @config.skill_files.any?)
+        retire_stale_generation
+        copy_skill_files if @config.copy_skill_files && (@config.skills.any? || @config.skill_files.any?)
 
-      env = build_environment
-      args = build_args
-      @stdin, @stdout, @stderr, @wait_thread = Open3.popen3(env, *args, chdir: @config.cwd, unsetenv_others: true)
-      @stdin.sync = true
-      @running = true
+        generation = spawn_generation
+        activate_generation(generation)
+        generation.stdout_thread = Thread.new { read_stdout(generation) }
+        generation.stderr_thread = Thread.new { read_stderr(generation) }
+        Thread.pass
 
-      @stdout_thread = Thread.new { read_stdout }
-      @stderr_thread = Thread.new { read_stderr }
-      sleep 0.05
+        unless generation_running?(generation)
+          code = generation.wait_thread.value&.exitstatus
+          error = TransportError.new(
+            "CLI process exited during startup with code #{code}#{format_stderr_tail}"
+          )
+          shutdown_generation(generation, error: error)
+          raise error
+        end
+      end
 
-      return if running?
-
-      code = @wait_thread&.value&.exitstatus
-      stop
-      raise TransportError, "CLI process exited during startup with code #{code}#{format_stderr_tail}"
+      self
     end
 
     def stop
-      return unless @wait_thread || @stdin || @stdout || @stderr
+      @lifecycle_mutex.synchronize do
+        generation = current_generation
+        return self unless generation
 
-      @running = false
-      close_io(@stdin)
-      close_io(@stdout)
-      close_io(@stderr)
-      terminate_process
+        shutdown_generation(
+          generation,
+          error: TransportError.new("Transport stopped before receiving a response")
+        )
+      end
 
-      @stdout_thread&.kill
-      @stderr_thread&.kill
-      @stdin = @stdout = @stderr = @wait_thread = nil
-      @stdout_thread = @stderr_thread = nil
-      fail_pending_requests(TransportError.new("Transport stopped before receiving a response"))
+      self
     end
 
     def request(method, params = {})
-      raise TransportNotStartedError, "Transport not started" unless running? && @stdin
+      generation = current_running_generation
+      raise TransportNotStartedError, "Transport not started" unless generation
 
       request_id = next_request_id
       waiter = Waiter.new
@@ -121,8 +158,14 @@ module AutohandSDK
       }
 
       begin
-        @stdin.write("#{JSON.generate(payload)}\n")
-        @stdin.flush
+        @write_mutex.synchronize do
+          unless generation_current_and_running?(generation)
+            raise TransportNotStartedError, "Transport generation is no longer running"
+          end
+
+          generation.stdin.write("#{JSON.generate(payload)}\n")
+          generation.stdin.flush
+        end
       rescue IOError, Errno::EPIPE => e
         remove_waiter(request_id)
         raise TransportError,
@@ -141,13 +184,22 @@ module AutohandSDK
     def on_notification(method, &block)
       raise ArgumentError, "notification callback required" unless block
 
-      callbacks = @notification_callbacks[method]
-      callbacks << block
-      -> { callbacks.delete(block) }
+      @callbacks_mutex.synchronize { @notification_callbacks[method] << block }
+      lambda do
+        @callbacks_mutex.synchronize { @notification_callbacks[method].delete(block) }
+      end
+    end
+
+    def on_termination(&block)
+      raise ArgumentError, "termination callback required" unless block
+
+      @callbacks_mutex.synchronize { @termination_callbacks << block }
+      -> { @callbacks_mutex.synchronize { @termination_callbacks.delete(block) } }
     end
 
     def running?
-      @running && @wait_thread&.alive?
+      generation = current_generation
+      generation ? generation_running?(generation) : false
     end
 
     private
@@ -160,6 +212,124 @@ module AutohandSDK
 
     def remove_waiter(request_id)
       @pending_mutex.synchronize { @pending.delete(request_id) }
+    end
+
+    def spawn_generation
+      env = build_environment
+      args = build_args
+      stdin, stdout, stderr, wait_thread = Open3.popen3(
+        env,
+        *args,
+        chdir: @config.cwd,
+        unsetenv_others: true
+      )
+      stdin.sync = true
+      @stderr_mutex.synchronize do
+        @stderr_lines = []
+        @stderr_tail = ""
+      end
+
+      Generation.new(
+        id: next_generation_id,
+        stdin: stdin,
+        stdout: stdout,
+        stderr: stderr,
+        wait_thread: wait_thread,
+        stopping: false
+      )
+    end
+
+    def next_generation_id
+      @state_mutex.synchronize do
+        @generation_sequence += 1
+      end
+    end
+
+    def activate_generation(generation)
+      @state_mutex.synchronize { @generation = generation }
+    end
+
+    def current_generation
+      @state_mutex.synchronize { @generation }
+    end
+
+    def current_running_generation
+      @state_mutex.synchronize do
+        generation = @generation
+        generation if generation && !generation.stopping && generation.wait_thread.alive?
+      end
+    end
+
+    def generation_running?(generation)
+      @state_mutex.synchronize do
+        @generation.equal?(generation) && !generation.stopping && generation.wait_thread.alive?
+      end
+    end
+
+    def generation_current_and_running?(generation)
+      generation_running?(generation)
+    end
+
+    def retire_stale_generation
+      generation = current_generation
+      return unless generation
+
+      shutdown_generation(
+        generation,
+        error: TransportError.new("Previous CLI transport generation ended")
+      )
+    end
+
+    def shutdown_generation(generation, error:)
+      claimed = @state_mutex.synchronize do
+        next unless @generation.equal?(generation)
+
+        generation.stopping = true
+        @generation = nil
+        generation
+      end
+      return unless claimed
+
+      fail_pending_requests(error)
+      @write_mutex.synchronize { close_io(generation.stdin) }
+      terminate_process(generation)
+      close_io(generation.stdout)
+      close_io(generation.stderr)
+      join_reader_threads(generation)
+      generation
+    end
+
+    def handle_unexpected_termination(generation, error)
+      claimed = @lifecycle_mutex.synchronize do
+        shutdown_generation(generation, error: error)
+      end
+      notify_termination(error, generation.id) if claimed
+    end
+
+    def join_reader_threads(generation)
+      [generation.stdout_thread, generation.stderr_thread].each do |thread|
+        next unless thread
+        next if thread.equal?(Thread.current)
+        next if thread.join(READER_JOIN_TIMEOUT)
+
+        thread.kill
+        thread.join(READER_JOIN_TIMEOUT)
+      end
+      generation.stdout_thread = nil
+      generation.stderr_thread = nil
+    end
+
+    def notify_termination(error, generation_id)
+      callbacks = @callbacks_mutex.synchronize { @termination_callbacks.dup }
+      callbacks.each do |callback|
+        case callback.arity
+        when 0 then callback.call
+        when 1 then callback.call(error)
+        else callback.call(error, generation_id)
+        end
+      rescue StandardError => e
+        @config.logger.error("Unhandled termination callback error: #{e.class}: #{e.message}")
+      end
     end
 
     def build_args
@@ -311,16 +481,24 @@ module AutohandSDK
       name.sub(/\.md\z/i, "")
     end
 
-    def read_stdout
-      @stdout.each_line do |line|
-        break unless @running
+    def read_stdout(generation)
+      error = nil
+      generation.stdout.each_line do |line|
+        break if generation.stopping
 
         handle_stdout_line(line)
       end
     rescue IOError
-      fail_pending_requests(TransportError.new("CLI stdout closed"))
+      error = TransportError.new("CLI stdout closed")
     rescue StandardError => e
-      fail_pending_requests(TransportError.new("Failed reading CLI stdout: #{e.message}"))
+      error = TransportError.new("Failed reading CLI stdout: #{e.message}")
+    ensure
+      unless generation.stopping
+        handle_unexpected_termination(
+          generation,
+          error || TransportError.new("CLI stdout closed")
+        )
+      end
     end
 
     def handle_stdout_line(line)
@@ -354,7 +532,9 @@ module AutohandSDK
     end
 
     def callbacks_for(method)
-      @notification_callbacks[method] + @notification_callbacks["*"]
+      @callbacks_mutex.synchronize do
+        @notification_callbacks[method].dup + @notification_callbacks["*"].dup
+      end
     end
 
     def safely_call_notification(callback, params)
@@ -363,14 +543,18 @@ module AutohandSDK
       @config.logger.error("Unhandled notification callback error: #{e.class}: #{e.message}")
     end
 
-    def read_stderr
-      @stderr.each_line do |line|
+    def read_stderr(generation)
+      generation.stderr.each_line do |line|
+        break if generation.stopping
+
         text = line.to_s.strip
         next if text.empty?
 
-        @stderr_lines << text
-        @stderr_lines = @stderr_lines.last(50)
-        @stderr_tail = @stderr_lines.join("\n")
+        @stderr_mutex.synchronize do
+          @stderr_lines << text
+          @stderr_lines = @stderr_lines.last(50)
+          @stderr_tail = @stderr_lines.join("\n")
+        end
         @config.logger.debug("[CLI stderr] #{text}") if @config.debug
       end
     rescue IOError
@@ -390,26 +574,28 @@ module AutohandSDK
       waiters.each { |waiter| waiter.reject(error) }
     end
 
-    def terminate_process
-      return unless @wait_thread&.alive?
+    def terminate_process(generation)
+      return unless generation.wait_thread&.alive?
 
-      Process.kill("TERM", @wait_thread.pid)
-      return if @wait_thread.join(5)
+      Process.kill("TERM", generation.wait_thread.pid)
+      return if generation.wait_thread.join(PROCESS_STOP_TIMEOUT)
 
-      Process.kill("KILL", @wait_thread.pid)
-      @wait_thread.join
+      Process.kill("KILL", generation.wait_thread.pid)
+      generation.wait_thread.join(PROCESS_STOP_TIMEOUT)
     rescue Errno::ESRCH, Errno::ECHILD
       nil
     end
 
     def close_io(io)
       io&.close unless io&.closed?
-    rescue IOError
+    rescue IOError, SystemCallError
       nil
     end
 
     def format_stderr_tail
-      @stderr_tail.empty? ? "" : ":\n#{@stderr_tail}"
+      tail = stderr_tail
+      tail.empty? ? "" : ":\n#{tail}"
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

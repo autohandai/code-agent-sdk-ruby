@@ -76,6 +76,23 @@ Scopes are `:once`, `:session`, `:project`, and `:user`.
 - `#get_context_usage`
 - `#account_info`
 
+### Typed skill and MCP discovery
+
+| Client method | Result type | Exact RPC method |
+| --- | --- | --- |
+| `#get_skills_registry(force_refresh: nil)` | `SkillsRegistryResult` | `autohand.getSkillsRegistry` |
+| `#install_skill(name, scope:, force: nil)` | `InstallSkillResult` | `autohand.installSkill` |
+| `#list_mcp_servers` | `McpServersResult` | `autohand.mcp.listServers` |
+| `#list_mcp_tools(server_name: nil)` | `McpToolsResult` | `autohand.mcp.listTools` |
+| `#get_mcp_server_configs` | `McpServerConfigsResult` | `autohand.mcp.getServerConfigs` |
+
+The result objects and nested values are immutable Ruby `Data` instances.
+Optional arguments are omitted from the JSON-RPC payload when not provided.
+Install scope accepts only `:user` or `:project`. A valid `success: false`
+response remains an `InstallSkillResult`; a JSON-RPC error raises `RPCError`.
+
+`Agent` exposes all five methods through its normal client delegation.
+
 ### Slash commands and persistent goals
 
 - `#stream_command(command, args = nil, **options)`
@@ -113,6 +130,9 @@ See [Replayable Autoresearch](autoresearch.md) for the full lifecycle.
 
 ### MCP and hooks
 
+- `#list_mcp_servers`
+- `#list_mcp_tools(server_name: nil)`
+- `#get_mcp_server_configs`
 - `#reconnect_mcp_server(server_name)`
 - `#toggle_mcp_server(server_name, enabled)`
 - `#set_mcp_servers(servers)`
@@ -167,7 +187,9 @@ All `AutohandSDK::Client` goal and autoresearch methods are also available on
 
 ## `AutohandSDK::Run`
 
-- `#stream` returns an event enumerator.
+- `#stream` returns a replayable event enumerator. If its last active consumer
+  exits early and no `#wait` caller is active, the run aborts and joins its
+  background pump; other active consumers continue normally.
 - `#wait` returns the final result hash.
 - `#json(validate: nil)` parses the final text as JSON.
 - `#abort` aborts the active run.

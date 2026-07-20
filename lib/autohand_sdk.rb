@@ -1,17 +1,36 @@
 # frozen_string_literal: true
 
 require_relative "autohand_sdk/version"
-require_relative "autohand_sdk/errors"
-require_relative "autohand_sdk/hook_events"
-require_relative "autohand_sdk/configuration"
-require_relative "autohand_sdk/cli_installer"
-require_relative "autohand_sdk/transport"
-require_relative "autohand_sdk/rpc_client"
-require_relative "autohand_sdk/client"
-require_relative "autohand_sdk/agent"
-require_relative "autohand_sdk/json_output"
 
 module AutohandSDK
+  autoload :Agent, "autohand_sdk/agent"
+  autoload :Run, "autohand_sdk/agent"
+  autoload :Client, "autohand_sdk/client"
+  autoload :Configuration, "autohand_sdk/configuration"
+  autoload :CLIInstaller, "autohand_sdk/cli_installer"
+  autoload :Transport, "autohand_sdk/transport"
+  autoload :RPCClient, "autohand_sdk/rpc_client"
+  autoload :HookEvents, "autohand_sdk/hook_events"
+  autoload :JsonOutput, "autohand_sdk/json_output"
+  autoload :Error, "autohand_sdk/errors"
+  autoload :ConfigurationError, "autohand_sdk/errors"
+  autoload :CLIInstallError, "autohand_sdk/errors"
+  autoload :TransportError, "autohand_sdk/errors"
+  autoload :TransportNotStartedError, "autohand_sdk/errors"
+  autoload :RequestTimeoutError, "autohand_sdk/errors"
+  autoload :RPCError, "autohand_sdk/errors"
+  autoload :StructuredOutputError, "autohand_sdk/errors"
+  autoload :CommunitySkill, "autohand_sdk/discovery_types"
+  autoload :SkillRegistryCategory, "autohand_sdk/discovery_types"
+  autoload :SkillsRegistryResult, "autohand_sdk/discovery_types"
+  autoload :InstallSkillResult, "autohand_sdk/discovery_types"
+  autoload :McpServerSummary, "autohand_sdk/discovery_types"
+  autoload :McpServersResult, "autohand_sdk/discovery_types"
+  autoload :McpTool, "autohand_sdk/discovery_types"
+  autoload :McpToolsResult, "autohand_sdk/discovery_types"
+  autoload :McpServerConfig, "autohand_sdk/discovery_types"
+  autoload :McpServerConfigsResult, "autohand_sdk/discovery_types"
+
   class << self
     def config
       @config ||= Configuration.new
@@ -33,6 +52,9 @@ module AutohandSDK
       Agent.create(config.merge(**options), instructions: instructions)
     end
   end
-end
 
-require_relative "autohand_sdk/railtie" if defined?(Rails::Railtie)
+  if defined?(Rails::Railtie)
+    autoload :Railtie, "autohand_sdk/railtie"
+    Railtie
+  end
+end

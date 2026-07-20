@@ -43,6 +43,7 @@ Gem::Specification.new do |spec|
     file.start_with?(*%w[
                        .github/
                        test/
+                       benchmarks/
                        tmp/
                        bin/
                        .bundle/

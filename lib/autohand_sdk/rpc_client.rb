@@ -6,8 +6,54 @@ require_relative "utils"
 require_relative "autoresearch_rpc"
 
 module AutohandSDK
+  # RPC routing and event lifecycle share state and remain co-located intentionally.
+  # rubocop:disable Metrics/ClassLength
   class RPCClient
     include AutoresearchRPC
+
+    PROMPT_CLEANUP_TIMEOUT = 2.0
+
+    class RequestWorker
+      def initialize(&work)
+        @mutex = Mutex.new
+        @done = false
+        @result = nil
+        @error = nil
+        @thread = Thread.new do
+          result = work.call
+          @mutex.synchronize { @result = result }
+        rescue StandardError => e
+          @mutex.synchronize { @error = e }
+        ensure
+          @mutex.synchronize { @done = true }
+        end
+      end
+
+      def done?
+        @mutex.synchronize { @done }
+      end
+
+      def result
+        @mutex.synchronize { @result }
+      end
+
+      def error
+        @mutex.synchronize { @error }
+      end
+
+      def join(timeout = nil)
+        @thread.join(timeout)
+      end
+
+      def stop
+        return unless @thread.alive?
+
+        @thread.kill
+        @thread.join
+      end
+    end
+
+    PromptContext = Struct.new(:generation, :queue, keyword_init: true)
 
     RPC_METHODS = {
       prompt: "autohand.prompt",
@@ -17,6 +63,8 @@ module AutohandSDK
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
       get_supported_commands: "autohand.getSupportedCommands",
+      get_skills_registry: "autohand.getSkillsRegistry",
+      install_skill: "autohand.installSkill",
       set_permission_mode: "autohand.permissionModeSet",
       set_plan_mode: "autohand.planModeSet",
       set_model: "autohand.modelSet",
@@ -28,6 +76,9 @@ module AutohandSDK
       reconnect_mcp_server: "autohand.mcp.reconnectServer",
       toggle_mcp_server: "autohand.mcp.toggleServer",
       set_mcp_servers: "autohand.mcp.setServers",
+      list_mcp_servers: "autohand.mcp.listServers",
+      list_mcp_tools: "autohand.mcp.listTools",
+      get_mcp_server_configs: "autohand.mcp.getServerConfigs",
       get_hooks: "autohand.hooks.getHooks",
       add_hook: "autohand.hooks.addHook",
       remove_hook: "autohand.hooks.removeHook",
@@ -101,22 +152,55 @@ module AutohandSDK
       @config = Configuration.from(config, **)
       @transport = transport || Transport.new(@config)
       @event_queue = EventQueue.new
-      @prompt_mutex = Mutex.new
+      @event_subscribers = []
+      @event_subscribers_mutex = Mutex.new
+      @prompt_context = nil
+      @prompt_state_mutex = Mutex.new
+      @prompt_serial_mutex = Mutex.new
+      @prompt_generation = 0
+      @start_stop_mutex = Mutex.new
+      @started_mutex = Mutex.new
       @started = false
+      @active_transport_generation = nil
+      @has_started_transport = false
       @transport.on_notification("*") { |params| handle_notification(params) }
+      return unless @transport.respond_to?(:on_termination)
+
+      @transport.on_termination do |error, generation_id|
+        handle_transport_termination(error, generation_id)
+      end
     end
 
     def start
-      return if @started
+      @start_stop_mutex.synchronize do
+        return self if started? && @transport.running?
 
-      @transport.start
-      startup_check if @config.startup_check && @transport.running?
-      @started = true
+        mark_started(false)
+        @active_transport_generation = nil
+        close_event_streams if @has_started_transport
+        @transport.start
+        @has_started_transport = true
+        @active_transport_generation = transport_generation_id
+        startup_check if @config.startup_check
+        mark_started(true)
+      rescue StandardError
+        mark_started(false)
+        @active_transport_generation = nil
+        close_event_streams
+        raise
+      end
+      self
     end
 
     def stop
-      @transport.stop
-      @started = false
+      @start_stop_mutex.synchronize do
+        @transport.stop
+      ensure
+        mark_started(false)
+        @active_transport_generation = nil
+        close_event_streams
+      end
+      self
     end
 
     def prompt(params)
@@ -125,17 +209,35 @@ module AutohandSDK
 
     def stream_prompt(params)
       Enumerator.new do |yielder|
-        @prompt_mutex.synchronize do
-          @event_queue.clear
-          result, seen_events = run_prompt_request(Utils.with_rpc_aliases(params), yielder)
-          synthesize_prompt_events(result, yielder) unless seen_events
+        @prompt_serial_mutex.synchronize do
+          context = open_prompt_context
+          begin
+            run_prompt_request(Utils.with_rpc_aliases(params), yielder, context)
+          ensure
+            close_prompt_context(context)
+          end
         end
       end
     end
 
     def events
       Enumerator.new do |yielder|
-        loop { yielder << @event_queue.pop }
+        queue = EventQueue.new
+        @event_subscribers_mutex.synchronize do
+          @event_queue.drain.each { |event| queue.push(event) }
+          @event_subscribers << queue
+        end
+        begin
+          loop do
+            event = queue.pop
+            break if event.nil? && queue.closed?
+
+            yielder << event if event
+          end
+        ensure
+          @event_subscribers_mutex.synchronize { @event_subscribers.delete(queue) }
+          queue.close
+        end
       end
     end
 
@@ -161,6 +263,17 @@ module AutohandSDK
 
     def get_supported_commands
       request(RPC_METHODS.fetch(:get_supported_commands), {})
+    end
+
+    def get_skills_registry(force_refresh: nil)
+      request(RPC_METHODS.fetch(:get_skills_registry), { "forceRefresh" => force_refresh }.compact)
+    end
+
+    def install_skill(skill_name, scope:, force: nil)
+      request(
+        RPC_METHODS.fetch(:install_skill),
+        { "skillName" => skill_name.to_s, "scope" => scope.to_s, "force" => force }.compact
+      )
     end
 
     def set_permission_mode(mode)
@@ -205,6 +318,18 @@ module AutohandSDK
 
     def set_mcp_servers(servers)
       request(RPC_METHODS.fetch(:set_mcp_servers), { "servers" => servers })
+    end
+
+    def list_mcp_servers
+      request(RPC_METHODS.fetch(:list_mcp_servers), {})
+    end
+
+    def list_mcp_tools(server_name: nil)
+      request(RPC_METHODS.fetch(:list_mcp_tools), { "serverName" => server_name }.compact)
+    end
+
+    def get_mcp_server_configs
+      request(RPC_METHODS.fetch(:get_mcp_server_configs), {})
     end
 
     def get_hooks
@@ -279,37 +404,138 @@ module AutohandSDK
       raise TransportError, "CLI startup check failed: #{e.message}#{detail}"
     end
 
-    def run_prompt_request(params, yielder)
-      request_state = { done: false, result: nil, error: nil }
-      mutex = Mutex.new
-      request_thread = Thread.new do
-        result = prompt(params)
-        mutex.synchronize { request_state[:result] = result }
-      rescue StandardError => e
-        mutex.synchronize { request_state[:error] = e }
-      ensure
-        mutex.synchronize { request_state[:done] = true }
-      end
-
+    def run_prompt_request(params, yielder, context)
+      worker = RequestWorker.new { prompt(params) }
       seen_events = false
-      until mutex.synchronize { request_state[:done] }
-        event = @event_queue.pop(timeout: 0.05)
-        next unless event
+      terminal_seen = false
+      cleanup_required = true
 
-        seen_events = true
-        yielder << event
+      loop do
+        event = context.queue.pop(timeout: 0.05)
+        if event
+          seen_events = true
+          terminal_seen = terminal_event?(event)
+          yielder << event
+          break if terminal_seen
+
+          next
+        end
+
+        raise TransportError, "Prompt event stream closed" if context.queue.closed?
+        next unless worker.done?
+
+        if worker.error
+          cleanup_required = seen_events
+          raise worker.error
+        end
+
+        result = worker.result
+        cleanup_required = seen_events if prompt_rejected?(result)
+        raise_prompt_rejection(result)
+        next unless legacy_prompt_result?(result)
+
+        terminal_seen = true
+        if seen_events
+          synthesize_prompt_terminal(result, yielder)
+        else
+          synthesize_prompt_events(result, yielder)
+        end
+        break
       end
 
-      @event_queue.drain.each do |event|
-        seen_events = true
-        yielder << event
+      settle_prompt_worker(worker)
+    ensure
+      cleanup_abandoned_prompt(context) if worker && cleanup_required && !terminal_seen
+      worker&.stop
+    end
+
+    def open_prompt_context
+      @prompt_state_mutex.synchronize do
+        @prompt_generation += 1
+        PromptContext.new(generation: @prompt_generation, queue: EventQueue.new).tap do |context|
+          @prompt_context = context
+        end
+      end
+    end
+
+    def close_prompt_context(context)
+      @prompt_state_mutex.synchronize do
+        @prompt_context = nil if @prompt_context.equal?(context) && @prompt_context.generation == context.generation
+      end
+      context.queue.close
+    end
+
+    def settle_prompt_worker(worker)
+      unless worker.join(PROMPT_CLEANUP_TIMEOUT)
+        safely_stop_transport
+        raise TransportError, "Prompt acknowledgement did not settle after terminal event"
       end
 
-      request_thread.join
-      error = mutex.synchronize { request_state[:error] }
-      raise error if error
+      raise worker.error if worker.error
 
-      [mutex.synchronize { request_state[:result] }, seen_events]
+      raise_prompt_rejection(worker.result)
+    end
+
+    def cleanup_abandoned_prompt(context)
+      return unless @transport.running?
+
+      abort_worker = RequestWorker.new { abort }
+      deadline = monotonic_now + PROMPT_CLEANUP_TIMEOUT
+      terminal_seen = drain_prompt_until_terminal(context, abort_worker, deadline)
+      return if terminal_seen && abort_worker.join([deadline - monotonic_now, 0].max)
+
+      safely_stop_transport
+    ensure
+      abort_worker&.stop
+    end
+
+    def drain_prompt_until_terminal(context, abort_worker, deadline)
+      loop do
+        remaining = deadline - monotonic_now
+        return false if remaining <= 0
+
+        event = context.queue.pop(timeout: [remaining, 0.05].min)
+        return true if terminal_event?(event)
+        return false if context.queue.closed?
+        return false if abort_worker.done? && abort_worker.error
+      end
+    end
+
+    def safely_stop_transport
+      @start_stop_mutex.synchronize do
+        @transport.stop
+      rescue StandardError
+        nil
+      ensure
+        mark_started(false)
+        @active_transport_generation = nil
+        close_event_streams
+      end
+    end
+
+    def monotonic_now
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    def terminal_event?(event)
+      event.is_a?(Hash) && event["type"] == "agent_end"
+    end
+
+    def legacy_prompt_result?(result)
+      return false unless result.is_a?(Hash)
+      return true if result.key?("content")
+
+      !result.key?("success") && (result.key?("sessionId") || result.key?("session_id"))
+    end
+
+    def raise_prompt_rejection(result)
+      return unless prompt_rejected?(result)
+
+      raise RPCError, result["error"] || result["message"] || "Prompt request was rejected"
+    end
+
+    def prompt_rejected?(result)
+      result.is_a?(Hash) && result["success"] == false
     end
 
     def synthesize_prompt_events(result, yielder)
@@ -318,6 +544,11 @@ module AutohandSDK
       session_id = result["sessionId"] || result["session_id"] || ""
       yielder << { "type" => "agent_start", "session_id" => session_id }
       yielder << { "type" => "message_end", "content" => result["content"] } if result["content"]
+      synthesize_prompt_terminal(result, yielder)
+    end
+
+    def synthesize_prompt_terminal(result, yielder)
+      session_id = result["sessionId"] || result["session_id"] || ""
       yielder << { "type" => "agent_end", "session_id" => session_id, "reason" => "completed" }
     end
 
@@ -344,16 +575,63 @@ module AutohandSDK
       return unless event_type
 
       event = notification_to_event(event_type, params)
-      @event_queue.push(event)
+      publish_event(event)
 
       return unless method == "autohand.turnEnd"
 
-      @event_queue.push(
+      publish_event(
         "type" => "agent_end",
         "session_id" => event["session_id"] || event["turn_id"].to_s,
         "reason" => "completed",
         "timestamp" => event["timestamp"]
       )
+    end
+
+    def publish_event(event)
+      prompt_context = @prompt_state_mutex.synchronize do
+        context = @prompt_context
+        context if context&.generation == @prompt_generation
+      end
+      prompt_context&.queue&.push(event)
+      @event_subscribers_mutex.synchronize do
+        if @event_subscribers.empty?
+          @event_queue.push(event)
+        else
+          @event_subscribers.each { |queue| queue.push(event) }
+        end
+      end
+    end
+
+    def close_event_streams
+      prompt_context = @prompt_state_mutex.synchronize { @prompt_context }
+      prompt_context&.queue&.close
+      @event_queue.clear
+      subscribers = @event_subscribers_mutex.synchronize do
+        @event_subscribers.dup.tap { @event_subscribers.clear }
+      end
+      subscribers.each(&:close)
+    end
+
+    def handle_transport_termination(_error, generation_id)
+      @start_stop_mutex.synchronize do
+        return if generation_id && generation_id != @active_transport_generation
+
+        mark_started(false)
+        @active_transport_generation = nil
+        close_event_streams
+      end
+    end
+
+    def mark_started(value)
+      @started_mutex.synchronize { @started = value }
+    end
+
+    def started?
+      @started_mutex.synchronize { @started }
+    end
+
+    def transport_generation_id
+      @transport.generation_id if @transport.respond_to?(:generation_id)
     end
 
     def notification_to_event(event_type, params)
@@ -370,4 +648,5 @@ module AutohandSDK
       event
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

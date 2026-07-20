@@ -22,6 +22,7 @@ The gem:
 - Streams agent lifecycle, message, tool, permission, and file-change events.
 - Provides `AutohandSDK::Client` for low-level control and `AutohandSDK::Agent` / `Run` for application code.
 - Exposes slash commands, persistent goals, and the replayable autoresearch ledger through exact JSON-RPC methods.
+- Returns immutable typed values for skill-registry and MCP discovery APIs.
 - Keeps Rails optional through a Railtie that only loads when Rails is present.
 - Uses Ruby stdlib for runtime behavior; development dependencies stay out of production installs.
 
@@ -102,6 +103,10 @@ puts result.fetch(:text)
 agent.close
 ```
 
+If the last `Agent#stream` or `Run#stream` consumer exits early, the run aborts,
+drains the CLI turn, and joins its background pump. An active `Run#wait` caller
+or another stream consumer keeps the shared run alive.
+
 For one-shot tasks:
 
 ```ruby
@@ -178,6 +183,31 @@ AutohandSDK::Client.open(cwd: ".", debug: true) do |sdk|
 end
 ```
 
+Prompt acknowledgements are not completion responses: the enumerator remains
+open through `agent_end`. Closing it early aborts and drains that prompt before a
+later prompt can start; event queues are bounded to the newest 1,024 events.
+
+Discover and install community skills with immutable Ruby `Data` results:
+
+```ruby
+registry = sdk.get_skills_registry(force_refresh: false)
+registry.skills.each { |skill| puts [skill.name, skill.download_count] }
+
+installed = sdk.install_skill("typescript", scope: :project)
+raise installed.error unless installed.success?
+```
+
+MCP discovery follows the same typed contract:
+
+```ruby
+servers = sdk.list_mcp_servers
+tools = sdk.list_mcp_tools(server_name: "github")
+configs = sdk.get_mcp_server_configs
+```
+
+The exact wire keys remain `forceRefresh`, `skillName`, `serverName`,
+`toolCount`, and `autoConnect`; Ruby readers use snake_case.
+
 ## Rails
 
 The gem does not depend on Rails. When Rails is loaded, the Railtie uses `Rails.logger` by default and leaves all configuration explicit:
@@ -231,9 +261,20 @@ bundle install
 bundle exec rake
 bundle exec yard
 gem build autohand_sdk.gemspec
+bundle exec ruby benchmarks/startup.rb
 ```
 
 CI runs the test suite and RuboCop on Ruby 3.2, 3.3, and 3.4.
+The startup benchmark enforces 5 warmups and 50 measured samples with p95 below
+50 ms for cold public require, public client start, and fixture spawn through a
+successful first `autohand.getState`. Ruby VM boot and provider/network
+readiness are reported separately because the wrapper does not control them.
+The readiness fixture is a tiny native JSON-RPC process compiled once before
+sampling, so a second Ruby VM is not counted as SDK startup work. A C compiler
+is therefore required to run this maintainer benchmark.
+Its stable JSON contract has top-level `language`, `budgetMs`, `metrics`, and
+`passed`; every metric includes `samples`, `medianMs`, `p95Ms`, `maxMs`, and
+its own `passed` result.
 
 ## License
 

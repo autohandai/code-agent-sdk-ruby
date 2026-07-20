@@ -35,4 +35,25 @@ Common event types:
 - `changes_batch_end`
 - `error`
 
-The SDK emits an `agent_end` event after `turn_end` so stream consumers have a stable completion marker.
+The CLI acknowledges `autohand.prompt` before it emits the turn. The SDK therefore
+keeps the enumerator open after that acknowledgement and completes it only after
+the terminal `agent_end` event. It emits `agent_end` after `turn_end` so stream
+consumers have a stable completion marker.
+
+Each `RPCClient#events` enumerator has an independent queue. Global subscribers
+and the active prompt stream receive their own copies instead of stealing
+notifications. Queues retain the newest 1,024 events, bounding memory when a
+consumer is slow or absent.
+
+Only one prompt stream is active at a time. Ending a prompt enumeration early
+sends `autohand.abort` and drains that turn through its terminal event before the
+next prompt starts. If the CLI does not acknowledge and terminate the abandoned
+turn within two seconds, the SDK stops the transport so a later operation starts
+a fresh CLI process. An unexpected CLI exit or stdout closure also wakes blocked
+prompt and global event enumerators and leaves the client restartable.
+
+The same cancellation contract applies to `Agent#stream` and `Run#stream` even
+though `Run` uses a background pump to support replay and multiple consumers.
+When the last active stream consumer exits early and no `Run#wait` caller is
+active, the pump unwinds the low-level prompt enumerator, waits for abort cleanup,
+and terminates. Other active stream consumers or waiters keep the run alive.

@@ -1,6 +1,10 @@
 # Plan Mode
 
 Plan mode asks the CLI to stay in a read-only planning posture until you disable it.
+Passing `plan_mode: true` or `permission_mode: "plan"` applies
+`autohand.planModeSet` after the readiness `getState` probe and before
+`Client#start` returns. If that configuration call fails, startup stops the CLI
+and leaves the client unstarted.
 
 ```ruby
 AutohandSDK::Client.open(cwd: ".", permission_mode: "plan") do |sdk|
