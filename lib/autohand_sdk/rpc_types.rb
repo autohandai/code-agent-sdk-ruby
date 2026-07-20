@@ -389,6 +389,66 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  LearnRecommendParams = Data.define(:deep) do
+    def to_rpc
+      { "deep" => deep.nil? ? nil : RPCValidation.boolean(deep, "deep") }.compact
+    end
+  end
+
+  LEARN_AUDIT_STATUSES = %w[redundant outdated conflicting].freeze
+
+  LearnAuditEntry = Data.define(:skill, :status, :reason) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "learning audit entry")
+      new(
+        skill: RPCValidation.string(object.fetch("skill"), "skill"),
+        status: RPCValidation.enum(object.fetch("status"), LEARN_AUDIT_STATUSES, "status"),
+        reason: RPCValidation.string(object.fetch("reason"), "reason")
+      )
+    end
+  end
+
+  LearnRecommendation = Data.define(:slug, :score, :reason) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "learning recommendation")
+      score = object.fetch("score")
+      raise TypeError, "score must be numeric" unless score.is_a?(Numeric)
+
+      new(
+        slug: RPCValidation.string(object.fetch("slug"), "slug"),
+        score: score,
+        reason: RPCValidation.string(object.fetch("reason"), "reason")
+      )
+    end
+  end
+
+  LearnRecommendResult = Data.define(
+    :success,
+    :project_summary,
+    :audit,
+    :recommendations,
+    :gap_analysis,
+    :error
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "learning recommendations result")
+      new(
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        project_summary: RPCValidation.string(object.fetch("projectSummary"), "projectSummary"),
+        audit: RPCValidation.array(object.fetch("audit"), "audit").map do |entry|
+          LearnAuditEntry.from_rpc(entry)
+        end.freeze,
+        recommendations: RPCValidation.array(object.fetch("recommendations"), "recommendations").map do |entry|
+          LearnRecommendation.from_rpc(entry)
+        end.freeze,
+        gap_analysis: RPCValidation.optional_string(object["gapAnalysis"], "gapAnalysis"),
+        error: RPCValidation.optional_string(object["error"], "error")
+      )
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

@@ -141,6 +141,18 @@ module FakeCLI
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true })
         when "autohand.mcp.invokeResponse"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true })
+        when "autohand.learn.recommend"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              success: true,
+              projectSummary: "Nine SDK wrappers",
+              audit: [{ skill: "legacy", status: "outdated", reason: "old contract" }],
+              recommendations: [{ slug: "rpc-contracts", score: 0.97, reason: "missing typed APIs" }],
+              gapAnalysis: params["deep"] ? "Deep contract gap" : nil
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

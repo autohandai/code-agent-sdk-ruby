@@ -81,6 +81,7 @@ module AutohandSDK
       yolo_set_alias: "autohand.yolo.set",
       set_vscode_mcp_tools: "autohand.mcp.setVscodeTools",
       mcp_invoke_response: "autohand.mcp.invokeResponse",
+      learn_recommend: "autohand.learn.recommend",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -391,6 +392,11 @@ module AutohandSDK
         error: error
       )
       request(RPC_METHODS.fetch(:mcp_invoke_response), params.to_rpc)
+    end
+
+    def recommend_project_learning(deep: nil)
+      params = LearnRecommendParams.new(deep: deep)
+      request(RPC_METHODS.fetch(:learn_recommend), params.to_rpc)
     end
 
     def get_state(params = {})

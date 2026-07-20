@@ -211,6 +211,26 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_project_learning_recommendations_map_audit_and_ranked_results
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.recommend_project_learning(deep: true)
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::LearnRecommendResult, result)
+      assert_predicate(result, :success?)
+      assert_equal("outdated", result.audit.first.status)
+      assert_in_delta(0.97, result.recommendations.first.score)
+      assert_equal("Deep contract gap", result.gap_analysis)
+      assert_equal("autohand.learn.recommend", request.fetch("method"))
+      assert_equal({ "deep" => true }, request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log
