@@ -89,6 +89,11 @@ with the optional CLI error.
 Calls `autohand.automode.resume` with no parameters and returns the same
 operation-result model.
 
+### `#cancel_automode(reason: nil)`
+
+Calls `autohand.automode.cancel`. The optional reason is omitted from the wire
+payload when it is `nil`, and the return value uses the operation-result model.
+
 ### `#permission_response`
 
 Responds to a permission request event.

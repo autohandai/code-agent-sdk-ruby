@@ -176,5 +176,11 @@ module AutohandSDK
     end
   end
   AutomodeResumeResult = AutomodeOperationResult
+  AutomodeCancelParams = Data.define(:reason) do
+    def to_rpc
+      { "reason" => reason }.compact
+    end
+  end
+  AutomodeCancelResult = AutomodeOperationResult
 end
 # rubocop:enable Metrics/ModuleLength

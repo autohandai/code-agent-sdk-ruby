@@ -341,6 +341,19 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_cancel_automode_uses_exact_wire_contract_and_decodes_result
+    sdk, transport = contract_client("success" => true)
+
+    result = sdk.cancel_automode(reason: "Superseded")
+
+    assert_equal([["autohand.automode.cancel", { "reason" => "Superseded" }]], transport.requests)
+    assert_instance_of(AutohandSDK::AutomodeOperationResult, result)
+    assert_predicate(result, :success?)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :cancel_automode)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start

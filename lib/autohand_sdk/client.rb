@@ -168,6 +168,11 @@ module AutohandSDK
       AutomodeResumeResult.from_rpc(@rpc_client.resume_automode)
     end
 
+    def cancel_automode(reason: nil)
+      ensure_started
+      AutomodeCancelResult.from_rpc(@rpc_client.cancel_automode(reason: reason))
+    end
+
     def permission_response(params = nil, **options)
       ensure_started
       data = params.is_a?(Hash) ? params.merge(options) : options
