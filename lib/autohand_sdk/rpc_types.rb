@@ -449,6 +449,39 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  LearnUpdateParams = Data.define do
+    def to_rpc = {}
+  end
+
+  LEARN_UPDATE_STATUSES = %w[updated unchanged failed].freeze
+
+  LearnUpdateEntry = Data.define(:name, :status) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "learning update entry")
+      new(
+        name: RPCValidation.string(object.fetch("name"), "name"),
+        status: RPCValidation.enum(object.fetch("status"), LEARN_UPDATE_STATUSES, "status")
+      )
+    end
+  end
+
+  LearnUpdateResult = Data.define(:success, :updated, :unchanged, :results, :error) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "learning update result")
+      new(
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        updated: RPCValidation.integer(object.fetch("updated"), "updated"),
+        unchanged: RPCValidation.integer(object.fetch("unchanged"), "unchanged"),
+        results: RPCValidation.array(object.fetch("results"), "results").map do |entry|
+          LearnUpdateEntry.from_rpc(entry)
+        end.freeze,
+        error: RPCValidation.optional_string(object["error"], "error")
+      )
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

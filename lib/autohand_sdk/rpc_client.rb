@@ -82,6 +82,7 @@ module AutohandSDK
       set_vscode_mcp_tools: "autohand.mcp.setVscodeTools",
       mcp_invoke_response: "autohand.mcp.invokeResponse",
       learn_recommend: "autohand.learn.recommend",
+      learn_update: "autohand.learn.update",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -397,6 +398,10 @@ module AutohandSDK
     def recommend_project_learning(deep: nil)
       params = LearnRecommendParams.new(deep: deep)
       request(RPC_METHODS.fetch(:learn_recommend), params.to_rpc)
+    end
+
+    def update_project_learning
+      request(RPC_METHODS.fetch(:learn_update), LearnUpdateParams.new.to_rpc)
     end
 
     def get_state(params = {})

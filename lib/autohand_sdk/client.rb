@@ -257,6 +257,11 @@ module AutohandSDK
       LearnRecommendResult.from_rpc(@rpc_client.recommend_project_learning(deep: deep))
     end
 
+    def update_project_learning
+      ensure_started
+      LearnUpdateResult.from_rpc(@rpc_client.update_project_learning)
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

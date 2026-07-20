@@ -153,6 +153,17 @@ module FakeCLI
               gapAnalysis: params["deep"] ? "Deep contract gap" : nil
             }
           )
+        when "autohand.learn.update"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              success: true,
+              updated: 1,
+              unchanged: 1,
+              results: [{ name: "rpc-contracts", status: "updated" }, { name: "ruby", status: "unchanged" }]
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

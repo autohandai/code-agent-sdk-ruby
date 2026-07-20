@@ -231,6 +231,25 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_project_learning_updates_map_each_skill_status
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.update_project_learning
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::LearnUpdateResult, result)
+      assert_predicate(result, :success?)
+      assert_equal(1, result.updated)
+      assert_equal(%w[updated unchanged], result.results.map(&:status))
+      assert_equal("autohand.learn.update", request.fetch("method"))
+      assert_empty(request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log
