@@ -61,6 +61,8 @@ module AutohandSDK
   autoload :VscodeMCPTool, "autohand_sdk/rpc_types"
   autoload :MCPSetVscodeToolsParams, "autohand_sdk/rpc_types"
   autoload :MCPSetVscodeToolsResult, "autohand_sdk/rpc_types"
+  autoload :MCPInvokeResponseParams, "autohand_sdk/rpc_types"
+  autoload :MCPInvokeResponseResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"

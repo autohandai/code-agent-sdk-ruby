@@ -80,6 +80,7 @@ module AutohandSDK
       yolo_set: "autohand.yoloSet",
       yolo_set_alias: "autohand.yolo.set",
       set_vscode_mcp_tools: "autohand.mcp.setVscodeTools",
+      mcp_invoke_response: "autohand.mcp.invokeResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -380,6 +381,16 @@ module AutohandSDK
     def register_vscode_mcp_tools(tools)
       params = MCPSetVscodeToolsParams.new(tools: tools)
       request(RPC_METHODS.fetch(:set_vscode_mcp_tools), params.to_rpc)
+    end
+
+    def complete_mcp_invocation(request_id, success:, result: nil, error: nil)
+      params = MCPInvokeResponseParams.new(
+        request_id: request_id,
+        success: success,
+        result: result,
+        error: error
+      )
+      request(RPC_METHODS.fetch(:mcp_invoke_response), params.to_rpc)
     end
 
     def get_state(params = {})

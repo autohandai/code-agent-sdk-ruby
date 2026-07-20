@@ -191,6 +191,26 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_mcp_invocation_response_sends_completion_payload
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.complete_mcp_invocation("invoke-1", success: false, error: "tool unavailable")
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::MCPInvokeResponseResult, result)
+      assert_predicate(result, :success?)
+      assert_equal("autohand.mcp.invokeResponse", request.fetch("method"))
+      assert_equal(
+        { "requestId" => "invoke-1", "success" => false, "error" => "tool unavailable" },
+        request.fetch("params")
+      )
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log

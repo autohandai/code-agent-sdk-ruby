@@ -369,6 +369,26 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  MCPInvokeResponseParams = Data.define(:request_id, :success, :result, :error) do
+    def to_rpc
+      {
+        "requestId" => RPCValidation.string(request_id, "request_id"),
+        "success" => RPCValidation.boolean(success, "success"),
+        "result" => RPCValidation.optional_string(result, "result"),
+        "error" => RPCValidation.optional_string(error, "error")
+      }.compact
+    end
+  end
+
+  MCPInvokeResponseResult = Data.define(:success) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "MCP invocation response result")
+      new(success: RPCValidation.boolean(object.fetch("success"), "success"))
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

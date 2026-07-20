@@ -241,6 +241,17 @@ module AutohandSDK
       MCPSetVscodeToolsResult.from_rpc(@rpc_client.register_vscode_mcp_tools(tools))
     end
 
+    def complete_mcp_invocation(request_id, success:, result: nil, error: nil)
+      ensure_started
+      response = @rpc_client.complete_mcp_invocation(
+        request_id,
+        success: success,
+        result: result,
+        error: error
+      )
+      MCPInvokeResponseResult.from_rpc(response)
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end
