@@ -728,6 +728,21 @@ module AutohandSDK
     def method = "autohand.hook.postResponse"
   end
 
+  MCPInvokeRequestEvent = Data.define(:request_id, :tool_name, :args, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "MCP invocation request event")
+      new(
+        request_id: RPCValidation.string(object.fetch("requestId"), "requestId"),
+        tool_name: RPCValidation.string(object.fetch("toolName"), "toolName"),
+        args: RPCValidation.object(object.fetch("args"), "args").freeze,
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "mcp_invoke_request"
+    def method = "autohand.mcp.invokeRequest"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

@@ -408,6 +408,18 @@ class ExtendedRPCEventsTest < SDKTestCase
     end
   end
 
+  def test_mcp_invocation_request_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::MCPInvokeRequestEvent) }
+
+      assert_equal("mcp_invoke_request", event.type)
+      assert_equal("mcp-invoke-9", event.request_id)
+      assert_equal("open_issue", event.tool_name)
+      assert_equal("SDK parity", event.args.fetch("issue"))
+    end
+  end
+
   private
 
   def with_typed_events

@@ -266,6 +266,16 @@ module FakeCLI
                 timestamp: "2026-07-21T01:10:00.000Z"
               }
             )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.mcp.invokeRequest",
+              params: {
+                requestId: "mcp-invoke-9",
+                toolName: "open_issue",
+                args: { issue: "SDK parity" },
+                timestamp: "2026-07-21T01:11:00.000Z"
+              }
+            )
           end
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"
