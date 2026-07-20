@@ -73,6 +73,7 @@ module AutohandSDK
       permission_acknowledged: "autohand.permissionAcknowledged",
       directory_access_response: "autohand.directoryAccessResponse",
       directory_access_acknowledged: "autohand.directoryAccessAcknowledged",
+      changes_decision: "autohand.changesDecision",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -338,6 +339,15 @@ module AutohandSDK
     def acknowledge_directory_access(request_id)
       params = DirectoryAccessAcknowledgementParams.new(request_id: request_id)
       request(RPC_METHODS.fetch(:directory_access_acknowledged), params.to_rpc)
+    end
+
+    def decide_changes(batch_id, action:, selected_change_ids: nil)
+      params = ChangesDecisionParams.new(
+        batch_id: batch_id,
+        action: action,
+        selected_change_ids: selected_change_ids
+      )
+      request(RPC_METHODS.fetch(:changes_decision), params.to_rpc)
     end
 
     def get_state(params = {})

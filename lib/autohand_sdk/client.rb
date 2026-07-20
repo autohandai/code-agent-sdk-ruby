@@ -201,6 +201,16 @@ module AutohandSDK
       DirectoryAccessAcknowledgementResult.from_rpc(result)
     end
 
+    def decide_changes(batch_id, action:, selected_change_ids: nil)
+      ensure_started
+      result = @rpc_client.decide_changes(
+        batch_id,
+        action: action,
+        selected_change_ids: selected_change_ids
+      )
+      ChangesDecisionResult.from_rpc(result)
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

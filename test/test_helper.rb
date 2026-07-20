@@ -66,6 +66,17 @@ module FakeCLI
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true })
         when "autohand.directoryAccessAcknowledged"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true })
+        when "autohand.changesDecision"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              success: true,
+              appliedCount: params.fetch("selectedChangeIds", []).length,
+              skippedCount: 1,
+              errors: [{ changeId: "change-skipped", error: "conflict" }]
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

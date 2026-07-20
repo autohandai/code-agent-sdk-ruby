@@ -23,6 +23,25 @@ module AutohandSDK
 
       raise TypeError, "#{context} must be a boolean"
     end
+
+    def integer(value, context)
+      return value if value.is_a?(Integer)
+
+      raise TypeError, "#{context} must be an integer"
+    end
+
+    def array(value, context)
+      return value if value.is_a?(Array)
+
+      raise TypeError, "#{context} must be an array"
+    end
+
+    def enum(value, allowed, context)
+      string_value = string(value, context)
+      return string_value if allowed.include?(string_value)
+
+      raise ArgumentError, "#{context} must be one of: #{allowed.join(", ")}"
+    end
   end
 
   PermissionAcknowledgementParams = Data.define(:request_id) do
@@ -68,6 +87,51 @@ module AutohandSDK
     def self.from_rpc(value)
       object = RPCValidation.object(value, "directory access acknowledgement result")
       new(success: RPCValidation.boolean(object.fetch("success"), "success"))
+    end
+
+    alias_method :success?, :success
+  end
+
+  CHANGE_DECISION_ACTIONS = %w[accept_all reject_all accept_selected].freeze
+
+  ChangesDecisionParams = Data.define(:batch_id, :action, :selected_change_ids) do
+    def to_rpc
+      ids = selected_change_ids
+      normalized_ids = if ids.nil?
+                         nil
+                       else
+                         RPCValidation.array(ids, "selected_change_ids").map do |id|
+                           RPCValidation.string(id, "selected_change_id")
+                         end
+                       end
+      {
+        "batchId" => RPCValidation.string(batch_id, "batch_id"),
+        "action" => RPCValidation.enum(action.to_s, CHANGE_DECISION_ACTIONS, "action"),
+        "selectedChangeIds" => normalized_ids
+      }.compact
+    end
+  end
+
+  ChangesDecisionError = Data.define(:change_id, :error) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "change decision error")
+      new(
+        change_id: RPCValidation.string(object.fetch("changeId"), "changeId"),
+        error: RPCValidation.string(object.fetch("error"), "error")
+      )
+    end
+  end
+
+  ChangesDecisionResult = Data.define(:success, :applied_count, :skipped_count, :errors) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "changes decision result")
+      raw_errors = object.fetch("errors", [])
+      new(
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        applied_count: RPCValidation.integer(object.fetch("appliedCount"), "appliedCount"),
+        skipped_count: RPCValidation.integer(object.fetch("skippedCount"), "skippedCount"),
+        errors: RPCValidation.array(raw_errors, "errors").map { |entry| ChangesDecisionError.from_rpc(entry) }.freeze
+      )
     end
 
     alias_method :success?, :success

@@ -54,6 +54,32 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_multi_file_change_decision_maps_nested_result_and_wire_contract
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.decide_changes(
+        "batch-1",
+        action: :accept_selected,
+        selected_change_ids: %w[change-1 change-2]
+      )
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::ChangesDecisionResult, result)
+      assert_predicate(result, :success?)
+      assert_equal(2, result.applied_count)
+      assert_equal("change-skipped", result.errors.first.change_id)
+      assert_equal("autohand.changesDecision", request.fetch("method"))
+      assert_equal(
+        { "batchId" => "batch-1", "action" => "accept_selected", "selectedChangeIds" => %w[change-1 change-2] },
+        request.fetch("params")
+      )
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log
