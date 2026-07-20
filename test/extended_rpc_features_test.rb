@@ -342,6 +342,17 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_pre_tool_hook_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::HookPreToolEvent) }
+
+      assert_equal("hook_pre_tool", event.type)
+      assert_equal("write_file", event.tool_name)
+      assert_equal("README.md", event.args.fetch("path"))
+    end
+  end
+
   private
 
   def with_request_log

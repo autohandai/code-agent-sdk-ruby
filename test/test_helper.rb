@@ -224,6 +224,16 @@ module FakeCLI
                 timestamp: "2026-07-21T01:06:00.000Z"
               }
             )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.hook.preTool",
+              params: {
+                toolId: "tool-7",
+                toolName: "write_file",
+                args: { path: "README.md" },
+                timestamp: "2026-07-21T01:07:00.000Z"
+              }
+            )
           end
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"

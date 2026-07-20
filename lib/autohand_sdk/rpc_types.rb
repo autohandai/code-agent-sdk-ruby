@@ -643,6 +643,21 @@ module AutohandSDK
     def method = "autohand.automode.error"
   end
 
+  HookPreToolEvent = Data.define(:tool_id, :tool_name, :args, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "pre-tool hook event")
+      new(
+        tool_id: RPCValidation.string(object.fetch("toolId"), "toolId"),
+        tool_name: RPCValidation.string(object.fetch("toolName"), "toolName"),
+        args: RPCValidation.object(object.fetch("args"), "args").freeze,
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_pre_tool"
+    def method = "autohand.hook.preTool"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}
