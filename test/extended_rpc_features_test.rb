@@ -306,6 +306,19 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_auto_mode_iteration_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::AutomodeIterationEvent) }
+
+      assert_equal("automode_iteration", event.type)
+      assert_equal("automode-1", event.session_id)
+      assert_equal(3, event.iteration)
+      assert_equal(%w[edit test], event.actions)
+      assert_equal(420, event.tokens_used)
+    end
+  end
+
   private
 
   def with_request_log
@@ -321,5 +334,13 @@ class ExtendedRPCFeaturesTest < SDKTestCase
 
   def requests(path)
     File.readlines(path, chomp: true).map { |line| JSON.parse(line) }
+  end
+
+  def with_typed_events
+    sdk = client(env_vars: { "AUTOHAND_TEST_TYPED_EVENTS" => "1" })
+    sdk.start
+    yield sdk
+  ensure
+    sdk&.close
   end
 end

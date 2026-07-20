@@ -168,7 +168,7 @@ module AutohandSDK
     def record(event)
       @mutex.synchronize do
         @events << event
-        event_type = event["type"]
+        event_type = event.respond_to?(:type) ? event.type : event["type"]
         if event_type == "message_update"
           @text << event["delta"].to_s
         elsif event_type == "message_end" && event.key?("content")

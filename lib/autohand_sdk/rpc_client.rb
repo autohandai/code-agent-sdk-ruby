@@ -155,6 +155,10 @@ module AutohandSDK
       "autohand.autoresearch.event" => "autoresearch"
     }.freeze
 
+    TYPED_NOTIFICATION_FACTORIES = {
+      "autohand.automode.iteration" => ->(params) { AutomodeIterationEvent.from_rpc(params) }
+    }.freeze
+
     CAMEL_TO_SNAKE_KEYS = {
       "sessionId" => "session_id",
       "turnId" => "turn_id",
@@ -743,6 +747,11 @@ module AutohandSDK
 
     def handle_notification(params)
       method = params["_method"]
+      if (factory = TYPED_NOTIFICATION_FACTORIES[method])
+        publish_event(factory.call(params))
+        return
+      end
+
       event_type = NOTIFICATION_EVENT_TYPES[method]
       return unless event_type
 

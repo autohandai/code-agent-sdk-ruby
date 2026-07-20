@@ -594,6 +594,25 @@ module AutohandSDK
     alias_method :enabled?, :enabled
   end
 
+  AutomodeIterationEvent = Data.define(:session_id, :iteration, :actions, :tokens_used, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "auto-mode iteration event")
+      used = object["tokensUsed"]
+      new(
+        session_id: RPCValidation.string(object.fetch("sessionId"), "sessionId"),
+        iteration: RPCValidation.integer(object.fetch("iteration"), "iteration"),
+        actions: RPCValidation.array(object.fetch("actions"), "actions").map do |action|
+          RPCValidation.string(action, "action")
+        end.freeze,
+        tokens_used: used.nil? ? nil : RPCValidation.integer(used, "tokensUsed"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "automode_iteration"
+    def method = "autohand.automode.iteration"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

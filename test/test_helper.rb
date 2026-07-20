@@ -192,6 +192,19 @@ module FakeCLI
             }
           )
         when "autohand.setContextCompact"
+          if ENV["AUTOHAND_TEST_TYPED_EVENTS"] == "1"
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.automode.iteration",
+              params: {
+                sessionId: "automode-1",
+                iteration: 3,
+                actions: %w[edit test],
+                tokensUsed: 420,
+                timestamp: "2026-07-21T01:00:00.000Z"
+              }
+            )
+          end
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })

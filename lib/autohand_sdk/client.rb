@@ -101,6 +101,11 @@ module AutohandSDK
       end
     end
 
+    def events
+      ensure_started
+      @rpc_client.events
+    end
+
     def abort(reason: nil)
       ensure_started
       @rpc_client.abort(Utils.compact_hash("reason" => reason))
