@@ -79,6 +79,7 @@ module AutohandSDK
       session_attach: "autohand.session.attach",
       yolo_set: "autohand.yoloSet",
       yolo_set_alias: "autohand.yolo.set",
+      set_vscode_mcp_tools: "autohand.mcp.setVscodeTools",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -374,6 +375,11 @@ module AutohandSDK
       params = YoloSetParams.new(pattern: pattern, timeout_seconds: timeout_seconds)
       method = compatibility_alias ? :yolo_set_alias : :yolo_set
       request(RPC_METHODS.fetch(method), params.to_rpc)
+    end
+
+    def register_vscode_mcp_tools(tools)
+      params = MCPSetVscodeToolsParams.new(tools: tools)
+      request(RPC_METHODS.fetch(:set_vscode_mcp_tools), params.to_rpc)
     end
 
     def get_state(params = {})

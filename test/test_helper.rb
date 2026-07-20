@@ -137,6 +137,8 @@ module FakeCLI
             id: id,
             result: { success: true, expiresIn: params["timeoutSeconds"] }
           )
+        when "autohand.mcp.setVscodeTools"
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: { success: true })
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

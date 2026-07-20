@@ -321,6 +321,54 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  MCPInputSchema = Data.define(:properties, :required) do
+    def to_rpc
+      required_names = required
+      {
+        "type" => "object",
+        "properties" => RPCValidation.object(properties, "properties"),
+        "required" => if required_names.nil?
+                        nil
+                      else
+                        RPCValidation.array(required_names, "required").map do |name|
+                          RPCValidation.string(name, "required property")
+                        end
+                      end
+      }.compact
+    end
+  end
+
+  VscodeMCPTool = Data.define(:name, :description, :server_name, :input_schema) do
+    def to_rpc
+      {
+        "name" => RPCValidation.string(name, "name"),
+        "description" => RPCValidation.string(description, "description"),
+        "serverName" => RPCValidation.string(server_name, "server_name"),
+        "inputSchema" => input_schema&.to_rpc
+      }.compact
+    end
+  end
+
+  MCPSetVscodeToolsParams = Data.define(:tools) do
+    def to_rpc
+      normalized = RPCValidation.array(tools, "tools").map do |tool|
+        raise TypeError, "tools entries must be VscodeMCPTool values" unless tool.is_a?(VscodeMCPTool)
+
+        tool.to_rpc
+      end
+      { "tools" => normalized }
+    end
+  end
+
+  MCPSetVscodeToolsResult = Data.define(:success) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "MCP tool registration result")
+      new(success: RPCValidation.boolean(object.fetch("success"), "success"))
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

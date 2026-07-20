@@ -236,6 +236,11 @@ module AutohandSDK
       YoloSetResult.from_rpc(result)
     end
 
+    def register_vscode_mcp_tools(tools)
+      ensure_started
+      MCPSetVscodeToolsResult.from_rpc(@rpc_client.register_vscode_mcp_tools(tools))
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

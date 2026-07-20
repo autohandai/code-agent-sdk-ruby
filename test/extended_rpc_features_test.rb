@@ -163,6 +163,34 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_vscode_mcp_tool_registration_serializes_typed_descriptors
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+      schema = AutohandSDK::MCPInputSchema.new(
+        properties: { "issue" => { "type" => "string" } },
+        required: ["issue"]
+      )
+      tool = AutohandSDK::VscodeMCPTool.new(
+        name: "open_issue",
+        description: "Open an issue",
+        server_name: "vscode",
+        input_schema: schema
+      )
+
+      result = sdk.register_vscode_mcp_tools([tool])
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::MCPSetVscodeToolsResult, result)
+      assert_predicate(result, :success?)
+      assert_equal("autohand.mcp.setVscodeTools", request.fetch("method"))
+      assert_equal("object", request.dig("params", "tools", 0, "inputSchema", "type"))
+      assert_equal(["issue"], request.dig("params", "tools", 0, "inputSchema", "required"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log
