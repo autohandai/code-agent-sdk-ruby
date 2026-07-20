@@ -36,6 +36,8 @@ module AutohandSDK
   autoload :PermissionAcknowledgementResult, "autohand_sdk/rpc_types"
   autoload :DirectoryAccessResponseParams, "autohand_sdk/rpc_types"
   autoload :DirectoryAccessResponseResult, "autohand_sdk/rpc_types"
+  autoload :DirectoryAccessAcknowledgementParams, "autohand_sdk/rpc_types"
+  autoload :DirectoryAccessAcknowledgementResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"

@@ -37,6 +37,23 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_directory_access_acknowledgement_uses_exact_wire_contract
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.acknowledge_directory_access("directory-2")
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::DirectoryAccessAcknowledgementResult, result)
+      assert_predicate(result, :success?)
+      assert_equal("autohand.directoryAccessAcknowledged", request.fetch("method"))
+      assert_equal({ "requestId" => "directory-2" }, request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log
