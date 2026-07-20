@@ -579,6 +579,21 @@ module AutohandSDK
     end
   end
 
+  ContextCompactParams = Data.define(:enabled) do
+    def to_rpc
+      { "enabled" => RPCValidation.boolean(enabled, "enabled") }
+    end
+  end
+
+  ContextCompactResult = Data.define(:enabled) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "context compaction result")
+      new(enabled: RPCValidation.boolean(object.fetch("enabled"), "enabled"))
+    end
+
+    alias_method :enabled?, :enabled
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

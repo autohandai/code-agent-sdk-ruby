@@ -85,6 +85,7 @@ module AutohandSDK
       learn_update: "autohand.learn.update",
       learn_generate: "autohand.learn.generate",
       get_tools_registry: "autohand.getToolsRegistry",
+      set_context_compact: "autohand.setContextCompact",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -413,6 +414,11 @@ module AutohandSDK
 
     def get_tools_registry
       request(RPC_METHODS.fetch(:get_tools_registry), ToolsRegistryParams.new.to_rpc)
+    end
+
+    def set_context_compaction(enabled)
+      params = ContextCompactParams.new(enabled: enabled)
+      request(RPC_METHODS.fetch(:set_context_compact), params.to_rpc)
     end
 
     def get_state(params = {})

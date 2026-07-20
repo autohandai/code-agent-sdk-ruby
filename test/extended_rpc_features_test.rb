@@ -289,6 +289,23 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_context_compaction_control_returns_effective_state
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.set_context_compaction(false)
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::ContextCompactResult, result)
+      refute_predicate(result, :enabled?)
+      assert_equal("autohand.setContextCompact", request.fetch("method"))
+      assert_equal({ "enabled" => false }, request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log

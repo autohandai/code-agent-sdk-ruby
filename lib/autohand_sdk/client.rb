@@ -272,6 +272,11 @@ module AutohandSDK
       ToolsRegistryResult.from_rpc(@rpc_client.get_tools_registry)
     end
 
+    def set_context_compaction(enabled)
+      ensure_started
+      ContextCompactResult.from_rpc(@rpc_client.set_context_compaction(enabled))
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

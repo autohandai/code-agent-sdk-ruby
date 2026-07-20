@@ -191,6 +191,8 @@ module FakeCLI
               diagnostics: [{ file: ".autohand/tools/broken.json", reason: "invalid schema" }]
             }
           )
+        when "autohand.setContextCompact"
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

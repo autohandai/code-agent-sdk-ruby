@@ -81,6 +81,8 @@ module AutohandSDK
   autoload :ToolRegistryEntry, "autohand_sdk/rpc_types"
   autoload :ToolRegistryDiagnostic, "autohand_sdk/rpc_types"
   autoload :ToolsRegistryResult, "autohand_sdk/rpc_types"
+  autoload :ContextCompactParams, "autohand_sdk/rpc_types"
+  autoload :ContextCompactResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"
