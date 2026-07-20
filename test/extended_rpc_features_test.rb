@@ -100,6 +100,29 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_session_details_returns_typed_success_union_with_messages
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.get_session_details("session-42")
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::SessionDetailsSuccess, result)
+      assert_predicate(result, :success?)
+      assert_equal("Done", result.messages.first.content)
+      assert_equal("write_file", result.messages.first.tool_calls.first.name)
+      assert_equal("autohand.getSession", request.fetch("method"))
+      assert_equal({ "sessionId" => "session-42" }, request.fetch("params"))
+      assert_instance_of(
+        AutohandSDK::SessionDetailsFailure,
+        AutohandSDK::SessionDetailsResult.from_rpc("success" => false, "error" => "not found")
+      )
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log

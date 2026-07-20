@@ -42,6 +42,10 @@ module AutohandSDK
 
       raise ArgumentError, "#{context} must be one of: #{allowed.join(", ")}"
     end
+
+    def optional_string(value, context)
+      value.nil? ? nil : string(value, context)
+    end
   end
 
   PermissionAcknowledgementParams = Data.define(:request_id) do
@@ -182,6 +186,93 @@ module AutohandSDK
         total_pages: RPCValidation.integer(object.fetch("totalPages"), "totalPages"),
         total_items: RPCValidation.integer(object.fetch("totalItems"), "totalItems")
       )
+    end
+  end
+
+  SessionDetailsParams = Data.define(:session_id) do
+    def to_rpc
+      { "sessionId" => RPCValidation.string(session_id, "session_id") }
+    end
+  end
+
+  SESSION_MESSAGE_ROLES = %w[user assistant system tool].freeze
+
+  SessionMessageToolCall = Data.define(:id, :name, :args) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session message tool call")
+      new(
+        id: RPCValidation.string(object.fetch("id"), "id"),
+        name: RPCValidation.string(object.fetch("name"), "name"),
+        args: RPCValidation.object(object.fetch("args"), "args").freeze
+      )
+    end
+  end
+
+  SessionMessage = Data.define(:id, :role, :content, :timestamp, :tool_calls) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session message")
+      calls = object.fetch("toolCalls", [])
+      new(
+        id: RPCValidation.string(object.fetch("id"), "id"),
+        role: RPCValidation.enum(object.fetch("role"), SESSION_MESSAGE_ROLES, "role"),
+        content: RPCValidation.string(object.fetch("content"), "content"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp"),
+        tool_calls: RPCValidation.array(calls, "toolCalls").map do |entry|
+          SessionMessageToolCall.from_rpc(entry)
+        end.freeze
+      )
+    end
+  end
+
+  SessionDetailsSuccess = Data.define(
+    :session_id,
+    :project_name,
+    :model,
+    :message_count,
+    :status,
+    :created_at,
+    :last_active_at,
+    :summary,
+    :messages,
+    :workspace_root
+  ) do
+    def success? = true
+
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session details result")
+      new(
+        session_id: RPCValidation.string(object.fetch("sessionId"), "sessionId"),
+        project_name: RPCValidation.string(object.fetch("projectName"), "projectName"),
+        model: RPCValidation.string(object.fetch("model"), "model"),
+        message_count: RPCValidation.integer(object.fetch("messageCount"), "messageCount"),
+        status: RPCValidation.string(object.fetch("status"), "status"),
+        created_at: RPCValidation.string(object.fetch("createdAt"), "createdAt"),
+        last_active_at: RPCValidation.string(object.fetch("lastActiveAt"), "lastActiveAt"),
+        summary: RPCValidation.optional_string(object["summary"], "summary"),
+        messages: RPCValidation.array(object.fetch("messages"), "messages").map do |entry|
+          SessionMessage.from_rpc(entry)
+        end.freeze,
+        workspace_root: RPCValidation.string(object.fetch("workspaceRoot"), "workspaceRoot")
+      )
+    end
+  end
+
+  SessionDetailsFailure = Data.define(:error) do
+    def success? = false
+
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session details failure")
+      new(error: RPCValidation.optional_string(object["error"], "error"))
+    end
+  end
+
+  module SessionDetailsResult
+    module_function
+
+    def from_rpc(value)
+      object = RPCValidation.object(value, "session details result")
+      success = RPCValidation.boolean(object.fetch("success"), "success")
+      success ? SessionDetailsSuccess.from_rpc(object) : SessionDetailsFailure.from_rpc(object)
     end
   end
 

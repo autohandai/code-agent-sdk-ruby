@@ -96,6 +96,30 @@ module FakeCLI
               totalItems: 25
             }
           )
+        when "autohand.getSession"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              success: true,
+              sessionId: params.fetch("sessionId"),
+              projectName: "tin-wrapper",
+              model: "test-model",
+              messageCount: 1,
+              status: "completed",
+              createdAt: "2026-07-20T00:00:00.000Z",
+              lastActiveAt: "2026-07-21T00:00:00.000Z",
+              summary: "Added SDK support",
+              messages: [{
+                id: "message-1",
+                role: "assistant",
+                content: "Done",
+                timestamp: "2026-07-21T00:00:00.000Z",
+                toolCalls: [{ id: "tool-1", name: "write_file", args: { path: "README.md" } }]
+              }],
+              workspaceRoot: Dir.pwd
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

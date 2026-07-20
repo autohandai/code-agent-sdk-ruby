@@ -75,6 +75,7 @@ module AutohandSDK
       directory_access_acknowledged: "autohand.directoryAccessAcknowledged",
       changes_decision: "autohand.changesDecision",
       get_history: "autohand.getHistory",
+      get_session: "autohand.getSession",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -354,6 +355,11 @@ module AutohandSDK
     def get_session_history(page: nil, page_size: nil)
       params = SessionHistoryParams.new(page: page, page_size: page_size)
       request(RPC_METHODS.fetch(:get_history), params.to_rpc)
+    end
+
+    def get_session_details(session_id)
+      params = SessionDetailsParams.new(session_id: session_id)
+      request(RPC_METHODS.fetch(:get_session), params.to_rpc)
     end
 
     def get_state(params = {})
