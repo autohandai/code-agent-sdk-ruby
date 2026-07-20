@@ -189,6 +189,12 @@ module AutohandSDK
       PermissionAcknowledgementResult.from_rpc(@rpc_client.acknowledge_permission(request_id))
     end
 
+    def respond_to_directory_access(request_id, granted:)
+      ensure_started
+      result = @rpc_client.respond_to_directory_access(request_id, granted: granted)
+      DirectoryAccessResponseResult.from_rpc(result)
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

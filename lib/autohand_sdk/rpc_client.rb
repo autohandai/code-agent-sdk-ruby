@@ -71,6 +71,7 @@ module AutohandSDK
       automode_get_log: "autohand.automode.getLog",
       permission_response: "autohand.permissionResponse",
       permission_acknowledged: "autohand.permissionAcknowledged",
+      directory_access_response: "autohand.directoryAccessResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -326,6 +327,11 @@ module AutohandSDK
     def acknowledge_permission(request_id)
       params = PermissionAcknowledgementParams.new(request_id: request_id)
       request(RPC_METHODS.fetch(:permission_acknowledged), params.to_rpc)
+    end
+
+    def respond_to_directory_access(request_id, granted:)
+      params = DirectoryAccessResponseParams.new(request_id: request_id, granted: granted)
+      request(RPC_METHODS.fetch(:directory_access_response), params.to_rpc)
     end
 
     def get_state(params = {})

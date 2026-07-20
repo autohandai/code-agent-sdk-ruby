@@ -40,6 +40,24 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  DirectoryAccessResponseParams = Data.define(:request_id, :granted) do
+    def to_rpc
+      {
+        "requestId" => RPCValidation.string(request_id, "request_id"),
+        "granted" => RPCValidation.boolean(granted, "granted")
+      }
+    end
+  end
+
+  DirectoryAccessResponseResult = Data.define(:success) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "directory access response result")
+      new(success: RPCValidation.boolean(object.fetch("success"), "success"))
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}
