@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# The immutable RPC request and response values form one public contract.
+# rubocop:disable Metrics/ModuleLength
 module AutohandSDK
   ResetParams = Data.define do
     def to_rpc
@@ -94,4 +96,65 @@ module AutohandSDK
 
     alias_method :success?, :success
   end
+
+  AUTOMODE_SESSION_STATUSES = %w[running paused completed cancelled failed].freeze
+
+  AutomodeCheckpoint = Data.define(:commit, :message, :timestamp) do
+    def self.from_rpc(value)
+      new(
+        commit: value.fetch("commit").to_s,
+        message: value.fetch("message").to_s,
+        timestamp: value.fetch("timestamp").to_s
+      )
+    end
+  end
+
+  AutomodeState = Data.define(
+    :session_id,
+    :status,
+    :current_iteration,
+    :max_iterations,
+    :files_created,
+    :files_modified,
+    :branch,
+    :last_checkpoint
+  ) do
+    def self.from_rpc(value)
+      status = value.fetch("status").to_s
+      raise ArgumentError, "unsupported auto-mode status: #{status}" unless AUTOMODE_SESSION_STATUSES.include?(status)
+
+      checkpoint = value["lastCheckpoint"]
+      new(
+        session_id: value.fetch("sessionId").to_s,
+        status: status,
+        current_iteration: Integer(value.fetch("currentIteration")),
+        max_iterations: Integer(value.fetch("maxIterations")),
+        files_created: Integer(value.fetch("filesCreated")),
+        files_modified: Integer(value.fetch("filesModified")),
+        branch: value["branch"],
+        last_checkpoint: checkpoint.nil? ? nil : AutomodeCheckpoint.from_rpc(checkpoint)
+      )
+    end
+  end
+
+  AutomodeStatusParams = Data.define do
+    def to_rpc
+      {}
+    end
+  end
+
+  AutomodeStatusResult = Data.define(:active, :paused, :state) do
+    def self.from_rpc(value)
+      state = value["state"]
+      new(
+        active: value.fetch("active"),
+        paused: value.fetch("paused"),
+        state: state.nil? ? nil : AutomodeState.from_rpc(state)
+      )
+    end
+
+    alias_method :active?, :active
+    alias_method :paused?, :paused
+  end
 end
+# rubocop:enable Metrics/ModuleLength

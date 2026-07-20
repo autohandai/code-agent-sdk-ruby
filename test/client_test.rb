@@ -2,6 +2,7 @@
 
 require_relative "test_helper"
 
+# rubocop:disable Metrics/ClassLength
 class ClientTest < SDKTestCase
   class ContractTransport
     attr_reader :requests
@@ -279,6 +280,40 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_get_automode_status_uses_exact_wire_contract_and_decodes_result
+    wire_result = {
+      "active" => true,
+      "paused" => false,
+      "state" => {
+        "sessionId" => "auto-1",
+        "status" => "running",
+        "currentIteration" => 3,
+        "maxIterations" => 20,
+        "filesCreated" => 2,
+        "filesModified" => 4,
+        "branch" => "autohand/auto-1",
+        "lastCheckpoint" => {
+          "commit" => "abc123",
+          "message" => "iteration 2",
+          "timestamp" => "2026-07-20T00:02:00.000Z"
+        }
+      }
+    }
+    sdk, transport = contract_client(wire_result)
+
+    result = sdk.get_automode_status
+
+    assert_equal([["autohand.automode.status", {}]], transport.requests)
+    assert_instance_of(AutohandSDK::AutomodeStatusResult, result)
+    assert_predicate(result, :active?)
+    refute_predicate(result, :paused?)
+    assert_equal(3, result.state.current_iteration)
+    assert_equal("abc123", result.state.last_checkpoint.commit)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :get_automode_status)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start
@@ -409,3 +444,4 @@ class ClientTest < SDKTestCase
     [AutohandSDK::Client.new({ startup_check: false }, rpc_client: rpc_client), transport]
   end
 end
+# rubocop:enable Metrics/ClassLength

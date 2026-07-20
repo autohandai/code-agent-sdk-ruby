@@ -153,6 +153,11 @@ module AutohandSDK
     end
     # rubocop:enable Metrics/ParameterLists
 
+    def get_automode_status
+      ensure_started
+      AutomodeStatusResult.from_rpc(@rpc_client.get_automode_status)
+    end
+
     def permission_response(params = nil, **options)
       ensure_started
       data = params.is_a?(Hash) ? params.merge(options) : options

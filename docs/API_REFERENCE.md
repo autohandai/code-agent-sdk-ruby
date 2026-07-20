@@ -72,6 +72,12 @@ Calls `autohand.automode.start`. The optional `max_iterations`,
 `max_cost` keywords are emitted with exact lower-camel-case wire keys. The
 return value is an `AutomodeStartResult`.
 
+### `#get_automode_status`
+
+Calls `autohand.automode.status` with no parameters and returns an
+`AutomodeStatusResult`. Its optional immutable `state` exposes snake_case
+iteration and file counts, branch, and latest checkpoint metadata.
+
 ### `#permission_response`
 
 Responds to a permission request event.

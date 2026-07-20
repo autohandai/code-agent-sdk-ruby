@@ -64,6 +64,7 @@ module AutohandSDK
       browser_handoff_attach: "autohand.browserHandoff.attach",
       browser_handoff_attach_latest: "autohand.browserHandoff.attachLatest",
       automode_start: "autohand.automode.start",
+      automode_status: "autohand.automode.status",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -292,6 +293,10 @@ module AutohandSDK
       request(RPC_METHODS.fetch(:automode_start), params.to_rpc)
     end
     # rubocop:enable Metrics/ParameterLists
+
+    def get_automode_status
+      request(RPC_METHODS.fetch(:automode_status), AutomodeStatusParams.new.to_rpc)
+    end
 
     def permission_response(params)
       request(RPC_METHODS.fetch(:permission_response), normalize_permission_response(params))
