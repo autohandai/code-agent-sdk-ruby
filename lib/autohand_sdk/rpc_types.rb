@@ -743,6 +743,32 @@ module AutohandSDK
     def method = "autohand.mcp.invokeRequest"
   end
 
+  MCPToolsChangedEntry = Data.define(:name, :description, :server_name) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "MCP tools changed entry")
+      new(
+        name: RPCValidation.string(object.fetch("name"), "name"),
+        description: RPCValidation.string(object.fetch("description"), "description"),
+        server_name: RPCValidation.string(object.fetch("serverName"), "serverName")
+      )
+    end
+  end
+
+  MCPToolsChangedEvent = Data.define(:tools, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "MCP tools changed event")
+      new(
+        tools: RPCValidation.array(object.fetch("tools"), "tools").map do |entry|
+          MCPToolsChangedEntry.from_rpc(entry)
+        end.freeze,
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "mcp_tools_changed"
+    def method = "autohand.mcp.toolsChanged"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

@@ -163,7 +163,8 @@ module AutohandSDK
       "autohand.hook.postTool" => ->(params) { HookPostToolEvent.from_rpc(params) },
       "autohand.hook.prePrompt" => ->(params) { HookPrePromptEvent.from_rpc(params) },
       "autohand.hook.postResponse" => ->(params) { HookPostResponseEvent.from_rpc(params) },
-      "autohand.mcp.invokeRequest" => ->(params) { MCPInvokeRequestEvent.from_rpc(params) }
+      "autohand.mcp.invokeRequest" => ->(params) { MCPInvokeRequestEvent.from_rpc(params) },
+      "autohand.mcp.toolsChanged" => ->(params) { MCPToolsChangedEvent.from_rpc(params) }
     }.freeze
 
     CAMEL_TO_SNAKE_KEYS = {

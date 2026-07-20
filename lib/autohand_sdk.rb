@@ -92,6 +92,8 @@ module AutohandSDK
   autoload :TOKEN_USAGE_STATUSES, "autohand_sdk/rpc_types"
   autoload :HookPostResponseEvent, "autohand_sdk/rpc_types"
   autoload :MCPInvokeRequestEvent, "autohand_sdk/rpc_types"
+  autoload :MCPToolsChangedEntry, "autohand_sdk/rpc_types"
+  autoload :MCPToolsChangedEvent, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"

@@ -276,6 +276,14 @@ module FakeCLI
                 timestamp: "2026-07-21T01:11:00.000Z"
               }
             )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.mcp.toolsChanged",
+              params: {
+                tools: [{ name: "open_issue", description: "Open an issue", serverName: "vscode" }],
+                timestamp: "2026-07-21T01:12:00.000Z"
+              }
+            )
           end
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"

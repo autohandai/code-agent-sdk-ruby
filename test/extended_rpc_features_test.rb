@@ -420,6 +420,17 @@ class ExtendedRPCEventsTest < SDKTestCase
     end
   end
 
+  def test_mcp_tools_changed_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::MCPToolsChangedEvent) }
+
+      assert_equal("mcp_tools_changed", event.type)
+      assert_equal("open_issue", event.tools.first.name)
+      assert_equal("vscode", event.tools.first.server_name)
+    end
+  end
+
   private
 
   def with_typed_events
