@@ -250,6 +250,25 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_skill_generation_returns_typed_generated_artifact
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.generate_project_skill(scope: :project)
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::LearnGenerateResult, result)
+      assert_predicate(result, :success?)
+      assert_equal("generated-rpc-contracts", result.skill_name)
+      assert_equal("/skills/project/generated-rpc-contracts", result.skill_path)
+      assert_equal("autohand.learn.generate", request.fetch("method"))
+      assert_equal({ "scope" => "project" }, request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log

@@ -482,6 +482,28 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  LEARN_GENERATE_SCOPES = %w[project user].freeze
+
+  LearnGenerateParams = Data.define(:scope) do
+    def to_rpc
+      { "scope" => RPCValidation.enum(scope.to_s, LEARN_GENERATE_SCOPES, "scope") }
+    end
+  end
+
+  LearnGenerateResult = Data.define(:success, :skill_name, :skill_path, :error) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "skill generation result")
+      new(
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        skill_name: RPCValidation.optional_string(object["skillName"], "skillName"),
+        skill_path: RPCValidation.optional_string(object["skillPath"], "skillPath"),
+        error: RPCValidation.optional_string(object["error"], "error")
+      )
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

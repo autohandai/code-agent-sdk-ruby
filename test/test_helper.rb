@@ -164,6 +164,16 @@ module FakeCLI
               results: [{ name: "rpc-contracts", status: "updated" }, { name: "ruby", status: "unchanged" }]
             }
           )
+        when "autohand.learn.generate"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              success: true,
+              skillName: "generated-rpc-contracts",
+              skillPath: "/skills/\#{params.fetch("scope")}/generated-rpc-contracts"
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

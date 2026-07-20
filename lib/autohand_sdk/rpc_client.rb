@@ -83,6 +83,7 @@ module AutohandSDK
       mcp_invoke_response: "autohand.mcp.invokeResponse",
       learn_recommend: "autohand.learn.recommend",
       learn_update: "autohand.learn.update",
+      learn_generate: "autohand.learn.generate",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -402,6 +403,11 @@ module AutohandSDK
 
     def update_project_learning
       request(RPC_METHODS.fetch(:learn_update), LearnUpdateParams.new.to_rpc)
+    end
+
+    def generate_project_skill(scope:)
+      params = LearnGenerateParams.new(scope: scope)
+      request(RPC_METHODS.fetch(:learn_generate), params.to_rpc)
     end
 
     def get_state(params = {})
