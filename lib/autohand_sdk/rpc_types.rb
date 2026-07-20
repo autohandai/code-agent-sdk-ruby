@@ -613,6 +613,22 @@ module AutohandSDK
     def method = "autohand.automode.iteration"
   end
 
+  AutomodeCompleteEvent = Data.define(:session_id, :iterations, :files_created, :files_modified, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "auto-mode completion event")
+      new(
+        session_id: RPCValidation.string(object.fetch("sessionId"), "sessionId"),
+        iterations: RPCValidation.integer(object.fetch("iterations"), "iterations"),
+        files_created: RPCValidation.integer(object.fetch("filesCreated"), "filesCreated"),
+        files_modified: RPCValidation.integer(object.fetch("filesModified"), "filesModified"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "automode_complete"
+    def method = "autohand.automode.complete"
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

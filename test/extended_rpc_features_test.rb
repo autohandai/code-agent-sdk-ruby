@@ -319,6 +319,18 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_auto_mode_completion_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::AutomodeCompleteEvent) }
+
+      assert_equal("automode_complete", event.type)
+      assert_equal(5, event.iterations)
+      assert_equal(2, event.files_created)
+      assert_equal(4, event.files_modified)
+    end
+  end
+
   private
 
   def with_request_log

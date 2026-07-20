@@ -84,6 +84,7 @@ module AutohandSDK
   autoload :ContextCompactParams, "autohand_sdk/rpc_types"
   autoload :ContextCompactResult, "autohand_sdk/rpc_types"
   autoload :AutomodeIterationEvent, "autohand_sdk/rpc_types"
+  autoload :AutomodeCompleteEvent, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"

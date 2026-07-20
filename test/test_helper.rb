@@ -204,6 +204,17 @@ module FakeCLI
                 timestamp: "2026-07-21T01:00:00.000Z"
               }
             )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.automode.complete",
+              params: {
+                sessionId: "automode-1",
+                iterations: 5,
+                filesCreated: 2,
+                filesModified: 4,
+                timestamp: "2026-07-21T01:05:00.000Z"
+              }
+            )
           end
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params.fetch("enabled") })
         when "autohand.planModeSet"
