@@ -34,6 +34,8 @@ module AutohandSDK
   autoload :ResetResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
+  autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"
+  autoload :BrowserHandoffAttachResult, "autohand_sdk/rpc_types"
 
   class << self
     def config

@@ -53,6 +53,13 @@ Calls `autohand.browserHandoff.create`, mapping the snake_case options to
 `extensionId` and `installUrl`. It returns `BrowserHandoffCreateResult` with the
 token, session, workspace, timestamps, and launch URL.
 
+### `#attach_browser_handoff(token)`
+
+Calls `autohand.browserHandoff.attach` with the required token and returns a
+`BrowserHandoffAttachResult`. Missing, expired, and consumed tokens are normal
+`success? == false` results; successful results expose optional session,
+workspace, and message-count fields.
+
 ### `#permission_response`
 
 Responds to a permission request event.

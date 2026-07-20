@@ -119,6 +119,11 @@ module AutohandSDK
       BrowserHandoffCreateResult.from_rpc(result)
     end
 
+    def attach_browser_handoff(token)
+      ensure_started
+      BrowserHandoffAttachResult.from_rpc(@rpc_client.attach_browser_handoff(token))
+    end
+
     def permission_response(params = nil, **options)
       ensure_started
       data = params.is_a?(Hash) ? params.merge(options) : options

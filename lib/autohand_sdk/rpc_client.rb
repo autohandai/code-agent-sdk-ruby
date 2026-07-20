@@ -61,6 +61,7 @@ module AutohandSDK
       abort: "autohand.abort",
       reset: "autohand.reset",
       browser_handoff_create: "autohand.browserHandoff.create",
+      browser_handoff_attach: "autohand.browserHandoff.attach",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -255,6 +256,11 @@ module AutohandSDK
     def create_browser_handoff(extension_id: nil, install_url: nil)
       params = BrowserHandoffCreateParams.new(extension_id: extension_id, install_url: install_url)
       request(RPC_METHODS.fetch(:browser_handoff_create), params.to_rpc)
+    end
+
+    def attach_browser_handoff(token)
+      params = BrowserHandoffAttachParams.new(token: token)
+      request(RPC_METHODS.fetch(:browser_handoff_attach), params.to_rpc)
     end
 
     def permission_response(params)

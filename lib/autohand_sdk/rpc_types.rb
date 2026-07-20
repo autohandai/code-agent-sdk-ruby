@@ -38,4 +38,23 @@ module AutohandSDK
       )
     end
   end
+
+  BrowserHandoffAttachParams = Data.define(:token) do
+    def to_rpc
+      { "token" => token.to_s }
+    end
+  end
+
+  BrowserHandoffAttachResult = Data.define(:success, :session_id, :workspace_root, :message_count) do
+    def self.from_rpc(value)
+      new(
+        success: value.fetch("success"),
+        session_id: value["sessionId"],
+        workspace_root: value["workspaceRoot"],
+        message_count: value["messageCount"]
+      )
+    end
+
+    alias_method :success?, :success
+  end
 end
