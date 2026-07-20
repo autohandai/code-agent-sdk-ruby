@@ -267,6 +267,11 @@ module AutohandSDK
       LearnGenerateResult.from_rpc(@rpc_client.generate_project_skill(scope: scope))
     end
 
+    def get_tools_registry
+      ensure_started
+      ToolsRegistryResult.from_rpc(@rpc_client.get_tools_registry)
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

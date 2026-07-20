@@ -269,6 +269,26 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_tools_registry_maps_typed_entries_and_diagnostics
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      result = sdk.get_tools_registry
+      request = last_request(request_log)
+
+      assert_instance_of(AutohandSDK::ToolsRegistryResult, result)
+      assert_instance_of(AutohandSDK::ToolRegistryEntry, result.tools.first)
+      assert(result.tools.first.requires_approval)
+      assert_equal("builtin", result.tools.first.source)
+      assert_equal("invalid schema", result.diagnostics.first.reason)
+      assert_equal("autohand.getToolsRegistry", request.fetch("method"))
+      assert_empty(request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log

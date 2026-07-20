@@ -174,6 +174,23 @@ module FakeCLI
               skillPath: "/skills/\#{params.fetch("scope")}/generated-rpc-contracts"
             }
           )
+        when "autohand.getToolsRegistry"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              tools: [{
+                name: "write_file",
+                description: "Write a file",
+                requiresApproval: true,
+                approvalMessage: "Allow file write?",
+                source: "builtin",
+                schemaVersion: 1,
+                reuseHint: "Prefer patches"
+              }],
+              diagnostics: [{ file: ".autohand/tools/broken.json", reason: "invalid schema" }]
+            }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"

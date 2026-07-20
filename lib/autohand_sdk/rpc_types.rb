@@ -46,6 +46,14 @@ module AutohandSDK
     def optional_string(value, context)
       value.nil? ? nil : string(value, context)
     end
+
+    def optional_boolean(value, context)
+      value.nil? ? nil : boolean(value, context)
+    end
+
+    def optional_integer(value, context)
+      value.nil? ? nil : integer(value, context)
+    end
   end
 
   PermissionAcknowledgementParams = Data.define(:request_id) do
@@ -502,6 +510,73 @@ module AutohandSDK
     end
 
     alias_method :success?, :success
+  end
+
+  ToolsRegistryParams = Data.define do
+    def to_rpc = {}
+  end
+
+  TOOL_REGISTRY_SOURCES = %w[builtin meta extension].freeze
+  TOOL_REGISTRY_SCOPES = %w[user project].freeze
+
+  ToolRegistryEntry = Data.define(
+    :name,
+    :description,
+    :requires_approval,
+    :approval_message,
+    :source,
+    :scope,
+    :disabled,
+    :created_at,
+    :schema_version,
+    :handler_preview,
+    :reuse_hint,
+    :extension_id,
+    :extension_version
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "tool registry entry")
+      scope = object["scope"]
+      new(
+        name: RPCValidation.string(object.fetch("name"), "name"),
+        description: RPCValidation.string(object.fetch("description"), "description"),
+        requires_approval: RPCValidation.optional_boolean(object["requiresApproval"], "requiresApproval"),
+        approval_message: RPCValidation.optional_string(object["approvalMessage"], "approvalMessage"),
+        source: RPCValidation.enum(object.fetch("source"), TOOL_REGISTRY_SOURCES, "source"),
+        scope: scope.nil? ? nil : RPCValidation.enum(scope, TOOL_REGISTRY_SCOPES, "scope"),
+        disabled: RPCValidation.optional_boolean(object["disabled"], "disabled"),
+        created_at: RPCValidation.optional_string(object["createdAt"], "createdAt"),
+        schema_version: RPCValidation.optional_integer(object["schemaVersion"], "schemaVersion"),
+        handler_preview: RPCValidation.optional_string(object["handlerPreview"], "handlerPreview"),
+        reuse_hint: RPCValidation.optional_string(object["reuseHint"], "reuseHint"),
+        extension_id: RPCValidation.optional_string(object["extensionId"], "extensionId"),
+        extension_version: RPCValidation.optional_string(object["extensionVersion"], "extensionVersion")
+      )
+    end
+  end
+
+  ToolRegistryDiagnostic = Data.define(:file, :reason) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "tool registry diagnostic")
+      new(
+        file: RPCValidation.string(object.fetch("file"), "file"),
+        reason: RPCValidation.string(object.fetch("reason"), "reason")
+      )
+    end
+  end
+
+  ToolsRegistryResult = Data.define(:tools, :diagnostics) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "tools registry result")
+      new(
+        tools: RPCValidation.array(object.fetch("tools"), "tools").map do |entry|
+          ToolRegistryEntry.from_rpc(entry)
+        end.freeze,
+        diagnostics: RPCValidation.array(object.fetch("diagnostics"), "diagnostics").map do |entry|
+          ToolRegistryDiagnostic.from_rpc(entry)
+        end.freeze
+      )
+    end
   end
 
   ResetParams = Data.define do
