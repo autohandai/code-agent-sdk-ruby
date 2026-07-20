@@ -30,6 +30,12 @@ module AutohandSDK
       raise TypeError, "#{context} must be an integer"
     end
 
+    def number(value, context)
+      return value if value.is_a?(Numeric)
+
+      raise TypeError, "#{context} must be numeric"
+    end
+
     def array(value, context)
       return value if value.is_a?(Array)
 
@@ -656,6 +662,24 @@ module AutohandSDK
 
     def type = "hook_pre_tool"
     def method = "autohand.hook.preTool"
+  end
+
+  HookPostToolEvent = Data.define(:tool_id, :tool_name, :success, :duration, :output, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "post-tool hook event")
+      new(
+        tool_id: RPCValidation.string(object.fetch("toolId"), "toolId"),
+        tool_name: RPCValidation.string(object.fetch("toolName"), "toolName"),
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        duration: RPCValidation.number(object.fetch("duration"), "duration"),
+        output: RPCValidation.optional_string(object["output"], "output"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def success? = success
+    def type = "hook_post_tool"
+    def method = "autohand.hook.postTool"
   end
 
   ResetParams = Data.define do

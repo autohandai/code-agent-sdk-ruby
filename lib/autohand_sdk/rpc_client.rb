@@ -159,7 +159,8 @@ module AutohandSDK
       "autohand.automode.iteration" => ->(params) { AutomodeIterationEvent.from_rpc(params) },
       "autohand.automode.complete" => ->(params) { AutomodeCompleteEvent.from_rpc(params) },
       "autohand.automode.error" => ->(params) { AutomodeErrorEvent.from_rpc(params) },
-      "autohand.hook.preTool" => ->(params) { HookPreToolEvent.from_rpc(params) }
+      "autohand.hook.preTool" => ->(params) { HookPreToolEvent.from_rpc(params) },
+      "autohand.hook.postTool" => ->(params) { HookPostToolEvent.from_rpc(params) }
     }.freeze
 
     CAMEL_TO_SNAKE_KEYS = {

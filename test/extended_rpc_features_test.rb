@@ -306,6 +306,25 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  private
+
+  def with_request_log
+    Dir.mktmpdir("autohand-sdk-request-log") do |directory|
+      path = File.join(directory, "requests.jsonl")
+      yield path, { "AUTOHAND_TEST_REQUEST_LOG" => path }
+    end
+  end
+
+  def last_request(path)
+    requests(path).last
+  end
+
+  def requests(path)
+    File.readlines(path, chomp: true).map { |line| JSON.parse(line) }
+  end
+end
+
+class ExtendedRPCEventsTest < SDKTestCase
   def test_auto_mode_iteration_notifications_become_native_events
     with_typed_events do |sdk|
       sdk.set_context_compaction(true)
@@ -353,22 +372,19 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
-  private
+  def test_post_tool_hook_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::HookPostToolEvent) }
 
-  def with_request_log
-    Dir.mktmpdir("autohand-sdk-request-log") do |directory|
-      path = File.join(directory, "requests.jsonl")
-      yield path, { "AUTOHAND_TEST_REQUEST_LOG" => path }
+      assert_equal("hook_post_tool", event.type)
+      assert_predicate(event, :success?)
+      assert_in_delta(18.5, event.duration)
+      assert_equal("written", event.output)
     end
   end
 
-  def last_request(path)
-    requests(path).last
-  end
-
-  def requests(path)
-    File.readlines(path, chomp: true).map { |line| JSON.parse(line) }
-  end
+  private
 
   def with_typed_events
     sdk = client(env_vars: { "AUTOHAND_TEST_TYPED_EVENTS" => "1" })

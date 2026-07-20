@@ -87,6 +87,7 @@ module AutohandSDK
   autoload :AutomodeCompleteEvent, "autohand_sdk/rpc_types"
   autoload :AutomodeErrorEvent, "autohand_sdk/rpc_types"
   autoload :HookPreToolEvent, "autohand_sdk/rpc_types"
+  autoload :HookPostToolEvent, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"
