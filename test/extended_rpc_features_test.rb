@@ -142,6 +142,27 @@ class ExtendedRPCFeaturesTest < SDKTestCase
     end
   end
 
+  def test_timed_yolo_mode_supports_canonical_and_compatibility_wire_names
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+
+      canonical = sdk.set_yolo_mode("*", timeout_seconds: 900)
+      compatibility = sdk.set_yolo_mode("workspace/**", timeout_seconds: 60, compatibility_alias: true)
+      canonical_request, compatibility_request = requests(request_log).last(2)
+
+      assert_instance_of(AutohandSDK::YoloSetResult, canonical)
+      assert_predicate(canonical, :success?)
+      assert_equal(900, canonical.expires_in)
+      assert_predicate(compatibility, :success?)
+      assert_equal("autohand.yoloSet", canonical_request.fetch("method"))
+      assert_equal({ "pattern" => "*", "timeoutSeconds" => 900 }, canonical_request.fetch("params"))
+      assert_equal("autohand.yolo.set", compatibility_request.fetch("method"))
+    ensure
+      sdk&.close
+    end
+  end
+
   private
 
   def with_request_log
@@ -152,6 +173,10 @@ class ExtendedRPCFeaturesTest < SDKTestCase
   end
 
   def last_request(path)
-    JSON.parse(File.readlines(path, chomp: true).last)
+    requests(path).last
+  end
+
+  def requests(path)
+    File.readlines(path, chomp: true).map { |line| JSON.parse(line) }
   end
 end

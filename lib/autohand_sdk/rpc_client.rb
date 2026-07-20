@@ -77,6 +77,8 @@ module AutohandSDK
       get_history: "autohand.getHistory",
       get_session: "autohand.getSession",
       session_attach: "autohand.session.attach",
+      yolo_set: "autohand.yoloSet",
+      yolo_set_alias: "autohand.yolo.set",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
@@ -366,6 +368,12 @@ module AutohandSDK
     def attach_session(session_id)
       params = SessionAttachParams.new(session_id: session_id)
       request(RPC_METHODS.fetch(:session_attach), params.to_rpc)
+    end
+
+    def set_yolo_mode(pattern, timeout_seconds: nil, compatibility_alias: false)
+      params = YoloSetParams.new(pattern: pattern, timeout_seconds: timeout_seconds)
+      method = compatibility_alias ? :yolo_set_alias : :yolo_set
+      request(RPC_METHODS.fetch(method), params.to_rpc)
     end
 
     def get_state(params = {})

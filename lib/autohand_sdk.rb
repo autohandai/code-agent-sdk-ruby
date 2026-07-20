@@ -55,6 +55,8 @@ module AutohandSDK
   autoload :SessionDetailsResult, "autohand_sdk/rpc_types"
   autoload :SessionAttachParams, "autohand_sdk/rpc_types"
   autoload :SessionAttachResult, "autohand_sdk/rpc_types"
+  autoload :YoloSetParams, "autohand_sdk/rpc_types"
+  autoload :YoloSetResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
   autoload :BrowserHandoffAttachParams, "autohand_sdk/rpc_types"

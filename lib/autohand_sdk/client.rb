@@ -226,6 +226,16 @@ module AutohandSDK
       SessionAttachResult.from_rpc(@rpc_client.attach_session(session_id))
     end
 
+    def set_yolo_mode(pattern, timeout_seconds: nil, compatibility_alias: false)
+      ensure_started
+      result = @rpc_client.set_yolo_mode(
+        pattern,
+        timeout_seconds: timeout_seconds,
+        compatibility_alias: compatibility_alias
+      )
+      YoloSetResult.from_rpc(result)
+    end
+
     def allow_permission(request_id, scope: :once)
       permission_response(request_id: request_id, decision: permission_decision(:allow, scope))
     end

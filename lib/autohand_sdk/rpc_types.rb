@@ -298,6 +298,29 @@ module AutohandSDK
     alias_method :success?, :success
   end
 
+  YoloSetParams = Data.define(:pattern, :timeout_seconds) do
+    def to_rpc
+      timeout = timeout_seconds
+      {
+        "pattern" => RPCValidation.string(pattern, "pattern"),
+        "timeoutSeconds" => timeout.nil? ? nil : RPCValidation.integer(timeout, "timeout_seconds")
+      }.compact
+    end
+  end
+
+  YoloSetResult = Data.define(:success, :expires_in) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "YOLO mode result")
+      expires_in = object["expiresIn"]
+      new(
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        expires_in: expires_in.nil? ? nil : RPCValidation.integer(expires_in, "expiresIn")
+      )
+    end
+
+    alias_method :success?, :success
+  end
+
   ResetParams = Data.define do
     def to_rpc
       {}

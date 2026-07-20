@@ -131,6 +131,12 @@ module FakeCLI
               messageCount: 7
             }
           )
+        when "autohand.yoloSet", "autohand.yolo.set"
+          puts JSON.generate(
+            jsonrpc: "2.0",
+            id: id,
+            result: { success: true, expiresIn: params["timeoutSeconds"] }
+          )
         when "autohand.planModeSet"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { enabled: params["enabled"] })
         when "autohand.modelSet"
