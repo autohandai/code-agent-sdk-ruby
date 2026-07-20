@@ -208,6 +208,62 @@ configs = sdk.get_mcp_server_configs
 The exact wire keys remain `forceRefresh`, `skillName`, `serverName`,
 `toolCount`, and `autoConnect`; Ruby readers use snake_case.
 
+## Session and Auto-Mode Control
+
+`AutohandSDK::Client` and `AutohandSDK::Agent` expose the same typed session
+controls. Reset the current conversation or create an expiring, one-time browser
+handoff for another client:
+
+```ruby
+reset = agent.reset
+puts reset.session_id
+
+handoff = agent.create_browser_handoff(
+  extension_id: "your-extension-id",
+  install_url: "https://example.com/install"
+)
+puts handoff.url
+```
+
+In the receiving process, choose one attachment strategy: consume a known token
+or attach the newest unexpired handoff when no token is available:
+
+```ruby
+attached = agent.attach_browser_handoff(ENV.fetch("AUTOHAND_HANDOFF_TOKEN"))
+# Or: attached = agent.attach_latest_browser_handoff
+
+warn "handoff unavailable" unless attached.success?
+```
+
+Start a bounded autonomous run and return as soon as the CLI accepts it. Status,
+control operations, and iteration logs are immutable typed values with
+snake_case readers:
+
+```ruby
+started = agent.start_automode(
+  "Implement and verify the release checklist",
+  max_iterations: 25,
+  completion_promise: "VALIDATION PASSED",
+  use_worktree: true
+)
+raise(started.error || "auto-mode was not started") unless started.success?
+
+status = agent.get_automode_status
+puts status.state&.current_iteration
+
+agent.pause_automode
+agent.resume_automode
+
+log = agent.get_automode_log(limit: 10)
+log.iterations.each { |entry| puts [entry.iteration, entry.actions].inspect }
+
+agent.cancel_automode(reason: "release window closed")
+```
+
+See the [session and auto-mode control example](examples/08_session_and_automode.rb)
+for individual runnable actions and the [API reference](docs/API_REFERENCE.md)
+for every option and result field.
+
 ## Rails
 
 The gem does not depend on Rails. When Rails is loaded, the Railtie uses `Rails.logger` by default and leaves all configuration explicit:
@@ -251,6 +307,7 @@ end
 - [Structured JSON output](examples/04_structured_json.rb)
 - [Rails initializer](examples/05_rails_initializer.rb)
 - [Replayable autoresearch ledger](examples/07_autoresearch_ledger.rb)
+- [Session and auto-mode control](examples/08_session_and_automode.rb)
 
 ## Development
 
