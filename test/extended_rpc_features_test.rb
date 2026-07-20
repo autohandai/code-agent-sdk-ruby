@@ -325,6 +325,33 @@ class ExtendedRPCFeaturesTest < SDKTestCase
 end
 
 class ExtendedRPCEventsTest < SDKTestCase
+  def test_unknown_notifications_remain_observable
+    sdk = client(env_vars: { "AUTOHAND_TEST_UNKNOWN_EVENT" => "1" })
+    sdk.start
+    sdk.set_context_compaction(true)
+    event = sdk.events.first
+
+    assert_instance_of(AutohandSDK::UnknownNotificationEvent, event)
+    assert_equal("unknown_notification", event.type)
+    assert_equal("autohand.future.event", event.method)
+    assert_equal({ "value" => 7, "nested" => { "retained" => true } }, event.params)
+  ensure
+    sdk&.close
+  end
+
+  def test_malformed_known_notifications_are_dropped_without_hiding_valid_events
+    sdk = client(env_vars: { "AUTOHAND_TEST_MALFORMED_EVENT" => "1" })
+    sdk.start
+    sdk.set_context_compaction(true)
+    event = sdk.events.first
+
+    assert_instance_of(Hash, event)
+    assert_equal("error", event.fetch("type"))
+    assert_equal("sentinel", event.fetch("message"))
+  ensure
+    sdk&.close
+  end
+
   def test_auto_mode_iteration_notifications_become_native_events
     with_typed_events do |sdk|
       sdk.set_context_compaction(true)
@@ -428,6 +455,17 @@ class ExtendedRPCEventsTest < SDKTestCase
       assert_equal("mcp_tools_changed", event.type)
       assert_equal("open_issue", event.tools.first.name)
       assert_equal("vscode", event.tools.first.server_name)
+    end
+  end
+
+  def test_learning_progress_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      event = sdk.events.find { |candidate| candidate.is_a?(AutohandSDK::LearnProgressEvent) }
+
+      assert_equal("learn_progress", event.type)
+      assert_equal("evaluating", event.status)
+      assert_equal("2026-07-21T01:13:00.000Z", event.timestamp)
     end
   end
 

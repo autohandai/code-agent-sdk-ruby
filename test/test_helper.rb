@@ -192,6 +192,30 @@ module FakeCLI
             }
           )
         when "autohand.setContextCompact"
+          if ENV["AUTOHAND_TEST_UNKNOWN_EVENT"] == "1"
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.future.event",
+              params: { value: 7, nested: { retained: true } }
+            )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.error",
+              params: { code: 500, message: "sentinel" }
+            )
+          end
+          if ENV["AUTOHAND_TEST_MALFORMED_EVENT"] == "1"
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.automode.iteration",
+              params: { sessionId: 7, iteration: "three" }
+            )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.error",
+              params: { code: 500, message: "sentinel" }
+            )
+          end
           if ENV["AUTOHAND_TEST_TYPED_EVENTS"] == "1"
             puts JSON.generate(
               jsonrpc: "2.0",
@@ -282,6 +306,14 @@ module FakeCLI
               params: {
                 tools: [{ name: "open_issue", description: "Open an issue", serverName: "vscode" }],
                 timestamp: "2026-07-21T01:12:00.000Z"
+              }
+            )
+            puts JSON.generate(
+              jsonrpc: "2.0",
+              method: "autohand.learn.progress",
+              params: {
+                status: "evaluating",
+                timestamp: "2026-07-21T01:13:00.000Z"
               }
             )
           end

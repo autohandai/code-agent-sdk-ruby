@@ -600,6 +600,11 @@ module AutohandSDK
     alias_method :enabled?, :enabled
   end
 
+  UnknownNotificationEvent = Data.define(:rpc_method, :params) do
+    def type = "unknown_notification"
+    def method = rpc_method
+  end
+
   AutomodeIterationEvent = Data.define(:session_id, :iteration, :actions, :tokens_used, :timestamp) do
     def self.from_rpc(value)
       object = RPCValidation.object(value, "auto-mode iteration event")
@@ -767,6 +772,21 @@ module AutohandSDK
 
     def type = "mcp_tools_changed"
     def method = "autohand.mcp.toolsChanged"
+  end
+
+  LEARN_PROGRESS_STATUSES = %w[analyzing loading-registry evaluating generating updating].freeze
+
+  LearnProgressEvent = Data.define(:status, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "learning progress event")
+      new(
+        status: RPCValidation.enum(object.fetch("status"), LEARN_PROGRESS_STATUSES, "status"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "learn_progress"
+    def method = "autohand.learn.progress"
   end
 
   ResetParams = Data.define do

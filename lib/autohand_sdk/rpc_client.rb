@@ -164,7 +164,8 @@ module AutohandSDK
       "autohand.hook.prePrompt" => ->(params) { HookPrePromptEvent.from_rpc(params) },
       "autohand.hook.postResponse" => ->(params) { HookPostResponseEvent.from_rpc(params) },
       "autohand.mcp.invokeRequest" => ->(params) { MCPInvokeRequestEvent.from_rpc(params) },
-      "autohand.mcp.toolsChanged" => ->(params) { MCPToolsChangedEvent.from_rpc(params) }
+      "autohand.mcp.toolsChanged" => ->(params) { MCPToolsChangedEvent.from_rpc(params) },
+      "autohand.learn.progress" => ->(params) { LearnProgressEvent.from_rpc(params) }
     }.freeze
 
     CAMEL_TO_SNAKE_KEYS = {
@@ -761,7 +762,15 @@ module AutohandSDK
       end
 
       event_type = NOTIFICATION_EVENT_TYPES[method]
-      return unless event_type
+      unless event_type
+        publish_event(
+          UnknownNotificationEvent.new(
+            rpc_method: method,
+            params: params.except("_method").freeze
+          )
+        )
+        return
+      end
 
       event = notification_to_event(event_type, params)
       publish_event(event)
