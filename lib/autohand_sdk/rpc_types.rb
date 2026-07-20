@@ -170,5 +170,11 @@ module AutohandSDK
 
     alias_method :success?, :success
   end
+  AutomodeResumeParams = Data.define do
+    def to_rpc
+      {}
+    end
+  end
+  AutomodeResumeResult = AutomodeOperationResult
 end
 # rubocop:enable Metrics/ModuleLength

@@ -84,6 +84,11 @@ Calls `autohand.automode.pause` with no parameters and returns an
 `AutomodeOperationResult`. Rejections remain typed `success? == false` values
 with the optional CLI error.
 
+### `#resume_automode`
+
+Calls `autohand.automode.resume` with no parameters and returns the same
+operation-result model.
+
 ### `#permission_response`
 
 Responds to a permission request event.

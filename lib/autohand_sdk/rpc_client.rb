@@ -66,6 +66,7 @@ module AutohandSDK
       automode_start: "autohand.automode.start",
       automode_status: "autohand.automode.status",
       automode_pause: "autohand.automode.pause",
+      automode_resume: "autohand.automode.resume",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -301,6 +302,10 @@ module AutohandSDK
 
     def pause_automode
       request(RPC_METHODS.fetch(:automode_pause), AutomodePauseParams.new.to_rpc)
+    end
+
+    def resume_automode
+      request(RPC_METHODS.fetch(:automode_resume), AutomodeResumeParams.new.to_rpc)
     end
 
     def permission_response(params)
