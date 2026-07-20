@@ -65,6 +65,7 @@ module AutohandSDK
       browser_handoff_attach_latest: "autohand.browserHandoff.attachLatest",
       automode_start: "autohand.automode.start",
       automode_status: "autohand.automode.status",
+      automode_pause: "autohand.automode.pause",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -296,6 +297,10 @@ module AutohandSDK
 
     def get_automode_status
       request(RPC_METHODS.fetch(:automode_status), AutomodeStatusParams.new.to_rpc)
+    end
+
+    def pause_automode
+      request(RPC_METHODS.fetch(:automode_pause), AutomodePauseParams.new.to_rpc)
     end
 
     def permission_response(params)

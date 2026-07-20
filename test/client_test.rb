@@ -314,6 +314,20 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_pause_automode_uses_exact_wire_contract_and_decodes_result
+    sdk, transport = contract_client("success" => false, "error" => "No active auto-mode session")
+
+    result = sdk.pause_automode
+
+    assert_equal([["autohand.automode.pause", {}]], transport.requests)
+    assert_instance_of(AutohandSDK::AutomodeOperationResult, result)
+    refute_predicate(result, :success?)
+    assert_equal("No active auto-mode session", result.error)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :pause_automode)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start

@@ -45,6 +45,8 @@ module AutohandSDK
   autoload :AutomodeState, "autohand_sdk/rpc_types"
   autoload :AutomodeStatusParams, "autohand_sdk/rpc_types"
   autoload :AutomodeStatusResult, "autohand_sdk/rpc_types"
+  autoload :AutomodePauseParams, "autohand_sdk/rpc_types"
+  autoload :AutomodeOperationResult, "autohand_sdk/rpc_types"
 
   class << self
     def config

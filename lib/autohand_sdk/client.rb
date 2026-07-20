@@ -158,6 +158,11 @@ module AutohandSDK
       AutomodeStatusResult.from_rpc(@rpc_client.get_automode_status)
     end
 
+    def pause_automode
+      ensure_started
+      AutomodeOperationResult.from_rpc(@rpc_client.pause_automode)
+    end
+
     def permission_response(params = nil, **options)
       ensure_started
       data = params.is_a?(Hash) ? params.merge(options) : options

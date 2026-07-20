@@ -156,5 +156,19 @@ module AutohandSDK
     alias_method :active?, :active
     alias_method :paused?, :paused
   end
+
+  AutomodePauseParams = Data.define do
+    def to_rpc
+      {}
+    end
+  end
+
+  AutomodeOperationResult = Data.define(:success, :error) do
+    def self.from_rpc(value)
+      new(success: value.fetch("success"), error: value["error"])
+    end
+
+    alias_method :success?, :success
+  end
 end
 # rubocop:enable Metrics/ModuleLength

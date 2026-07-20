@@ -78,6 +78,12 @@ Calls `autohand.automode.status` with no parameters and returns an
 `AutomodeStatusResult`. Its optional immutable `state` exposes snake_case
 iteration and file counts, branch, and latest checkpoint metadata.
 
+### `#pause_automode`
+
+Calls `autohand.automode.pause` with no parameters and returns an
+`AutomodeOperationResult`. Rejections remain typed `success? == false` values
+with the optional CLI error.
+
 ### `#permission_response`
 
 Responds to a permission request event.
