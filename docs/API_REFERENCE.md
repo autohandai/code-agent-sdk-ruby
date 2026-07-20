@@ -47,6 +47,12 @@ Calls `autohand.reset` with an empty parameter object and returns an immutable
 `AutohandSDK::ResetResult` with a snake_case `session_id`. `Agent` delegates the
 same method.
 
+### `#create_browser_handoff(extension_id: nil, install_url: nil)`
+
+Calls `autohand.browserHandoff.create`, mapping the snake_case options to
+`extensionId` and `installUrl`. It returns `BrowserHandoffCreateResult` with the
+token, session, workspace, timestamps, and launch URL.
+
 ### `#permission_response`
 
 Responds to a permission request event.

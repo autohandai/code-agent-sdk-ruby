@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "event_queue"
+require_relative "rpc_types"
 require_relative "transport"
 require_relative "utils"
 require_relative "autoresearch_rpc"
@@ -59,6 +60,7 @@ module AutohandSDK
       prompt: "autohand.prompt",
       abort: "autohand.abort",
       reset: "autohand.reset",
+      browser_handoff_create: "autohand.browserHandoff.create",
       permission_response: "autohand.permissionResponse",
       get_state: "autohand.getState",
       get_messages: "autohand.getMessages",
@@ -248,6 +250,11 @@ module AutohandSDK
 
     def reset(params = {})
       request(RPC_METHODS.fetch(:reset), params)
+    end
+
+    def create_browser_handoff(extension_id: nil, install_url: nil)
+      params = BrowserHandoffCreateParams.new(extension_id: extension_id, install_url: install_url)
+      request(RPC_METHODS.fetch(:browser_handoff_create), params.to_rpc)
     end
 
     def permission_response(params)

@@ -32,6 +32,8 @@ module AutohandSDK
   autoload :McpServerConfigsResult, "autohand_sdk/discovery_types"
   autoload :ResetParams, "autohand_sdk/rpc_types"
   autoload :ResetResult, "autohand_sdk/rpc_types"
+  autoload :BrowserHandoffCreateParams, "autohand_sdk/rpc_types"
+  autoload :BrowserHandoffCreateResult, "autohand_sdk/rpc_types"
 
   class << self
     def config

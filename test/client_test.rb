@@ -186,6 +186,30 @@ class ClientTest < SDKTestCase
     sdk&.close
   end
 
+  def test_create_browser_handoff_uses_exact_wire_contract_and_decodes_result
+    wire_result = {
+      "token" => "token-1",
+      "sessionId" => "session-1",
+      "workspaceRoot" => "/workspace",
+      "createdAt" => "2026-07-20T00:00:00.000Z",
+      "expiresAt" => "2026-07-20T00:10:00.000Z",
+      "url" => "chrome-extension://ext/sidepanel.html?handoff=token-1"
+    }
+    sdk, transport = contract_client(wire_result)
+
+    result = sdk.create_browser_handoff(extension_id: "ext", install_url: "https://install.test")
+
+    assert_equal(
+      [["autohand.browserHandoff.create", { "extensionId" => "ext", "installUrl" => "https://install.test" }]],
+      transport.requests
+    )
+    assert_instance_of(AutohandSDK::BrowserHandoffCreateResult, result)
+    assert_equal("/workspace", result.workspace_root)
+    assert_respond_to(AutohandSDK::Agent.from_client(sdk), :create_browser_handoff)
+  ensure
+    sdk&.close
+  end
+
   def test_routes_goal_and_replayable_autoresearch_methods_to_exact_rpc_names
     sdk = client
     sdk.start

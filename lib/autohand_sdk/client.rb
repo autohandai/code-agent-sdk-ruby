@@ -113,6 +113,12 @@ module AutohandSDK
       ResetResult.from_rpc(@rpc_client.reset(ResetParams.new.to_rpc))
     end
 
+    def create_browser_handoff(extension_id: nil, install_url: nil)
+      ensure_started
+      result = @rpc_client.create_browser_handoff(extension_id: extension_id, install_url: install_url)
+      BrowserHandoffCreateResult.from_rpc(result)
+    end
+
     def permission_response(params = nil, **options)
       ensure_started
       data = params.is_a?(Hash) ? params.merge(options) : options
