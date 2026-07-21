@@ -521,8 +521,9 @@ module AutohandSDK
       method = message["method"]
       return unless method.is_a?(String)
 
-      params = message["params"]
-      params = params.is_a?(Hash) ? params.dup : { "value" => params }
+      raw_params = message["params"]
+      params = raw_params.is_a?(Hash) ? raw_params.dup : { "value" => raw_params }
+      params.instance_variable_set(:@autohand_raw_params, raw_params)
       params["_method"] = method
       callbacks_for(method).each { |callback| safely_call_notification(callback, params) }
     end

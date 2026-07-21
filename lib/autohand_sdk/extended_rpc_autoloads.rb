@@ -17,6 +17,10 @@ module AutohandSDK
     ContextCompactParams ContextCompactResult UnknownNotificationEvent
     AutomodeIterationEvent AutomodeCompleteEvent AutomodeErrorEvent
     HookPreToolEvent HookPostToolEvent HookPrePromptEvent TOKEN_USAGE_STATUSES HookPostResponseEvent
+    HOOK_FILE_CHANGE_TYPES HookFileModifiedEvent HookSessionErrorEvent HookStopEvent
+    HOOK_SESSION_TYPES HookSessionStartEvent HOOK_SESSION_END_REASONS HookSessionEndEvent
+    HookSubagentStopEvent HookPermissionRequestEvent HookNotificationEvent
+    HookContextCompactedEvent HookContextOverflowEvent HookContextWarningEvent HookContextCriticalEvent
     MCPInvokeRequestEvent MCPToolsChangedEntry MCPToolsChangedEvent LEARN_PROGRESS_STATUSES LearnProgressEvent
   ].freeze
 

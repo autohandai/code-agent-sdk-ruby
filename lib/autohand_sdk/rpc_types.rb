@@ -36,6 +36,26 @@ module AutohandSDK
       raise TypeError, "#{context} must be numeric"
     end
 
+    def finite_number(value, context)
+      return value if (value.is_a?(Integer) || value.is_a?(Float)) && value.finite?
+
+      raise TypeError, "#{context} must be a finite number"
+    end
+
+    def non_negative_finite_number(value, context)
+      numeric = finite_number(value, context)
+      return numeric if numeric >= 0
+
+      raise ArgumentError, "#{context} must be non-negative"
+    end
+
+    def non_negative_integer(value, context)
+      integer_value = integer(value, context)
+      return integer_value if integer_value >= 0
+
+      raise ArgumentError, "#{context} must be non-negative"
+    end
+
     def array(value, context)
       return value if value.is_a?(Array)
 
@@ -59,6 +79,10 @@ module AutohandSDK
 
     def optional_integer(value, context)
       value.nil? ? nil : integer(value, context)
+    end
+
+    def optional_object(value, context)
+      value.nil? ? nil : object(value, context)
     end
   end
 
@@ -676,7 +700,7 @@ module AutohandSDK
         tool_id: RPCValidation.string(object.fetch("toolId"), "toolId"),
         tool_name: RPCValidation.string(object.fetch("toolName"), "toolName"),
         success: RPCValidation.boolean(object.fetch("success"), "success"),
-        duration: RPCValidation.number(object.fetch("duration"), "duration"),
+        duration: RPCValidation.finite_number(object.fetch("duration"), "duration"),
         output: RPCValidation.optional_string(object["output"], "output"),
         timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
       )
@@ -724,13 +748,243 @@ module AutohandSDK
         tokens_used: RPCValidation.integer(object.fetch("tokensUsed"), "tokensUsed"),
         tokens_usage_status: normalized_usage_status,
         tool_calls_count: RPCValidation.integer(object.fetch("toolCallsCount"), "toolCallsCount"),
-        duration: RPCValidation.number(object.fetch("duration"), "duration"),
+        duration: RPCValidation.finite_number(object.fetch("duration"), "duration"),
         timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
       )
     end
 
     def type = "hook_post_response"
     def method = "autohand.hook.postResponse"
+  end
+
+  HOOK_FILE_CHANGE_TYPES = %w[create modify delete].freeze
+
+  module HookFileModifiedEvent
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "file-modified hook event")
+      event = object.except("_method").dup
+      event["file_path"] = RPCValidation.string(object.fetch("filePath"), "filePath")
+      event["change_type"] = RPCValidation.enum(
+        object.fetch("changeType"), HOOK_FILE_CHANGE_TYPES, "changeType"
+      )
+      event["tool_id"] = RPCValidation.string(object.fetch("toolId"), "toolId")
+      event["timestamp"] = RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      event["type"] = "file_modified"
+      event.extend(self)
+    end
+
+    def file_path = fetch("file_path")
+    def change_type = fetch("change_type")
+    alias file_change_type change_type
+    def tool_id = fetch("tool_id")
+    def timestamp = fetch("timestamp")
+    def type = fetch("type")
+    def method = "autohand.hook.fileModified"
+  end
+
+  HookSessionErrorEvent = Data.define(:error, :code, :context, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session-error hook event")
+      context = RPCValidation.optional_object(object["context"], "context")
+      new(
+        error: RPCValidation.string(object.fetch("error"), "error"),
+        code: RPCValidation.optional_string(object["code"], "code"),
+        context: context&.freeze,
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_session_error"
+    def method = "autohand.hook.sessionError"
+  end
+
+  HookStopEvent = Data.define(
+    :tokens_used,
+    :tokens_usage_status,
+    :tool_calls_count,
+    :duration,
+    :timestamp
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "stop hook event")
+      usage_status = object["tokensUsageStatus"]
+      normalized_usage_status = if usage_status.nil?
+                                  nil
+                                else
+                                  RPCValidation.enum(usage_status, TOKEN_USAGE_STATUSES, "tokensUsageStatus")
+                                end
+      new(
+        tokens_used: RPCValidation.integer(object.fetch("tokensUsed"), "tokensUsed"),
+        tokens_usage_status: normalized_usage_status,
+        tool_calls_count: RPCValidation.integer(object.fetch("toolCallsCount"), "toolCallsCount"),
+        duration: RPCValidation.finite_number(object.fetch("duration"), "duration"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_stop"
+    def method = "autohand.hook.stop"
+  end
+
+  HOOK_SESSION_TYPES = %w[startup resume clear].freeze
+
+  HookSessionStartEvent = Data.define(:session_type, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session-start hook event")
+      new(
+        session_type: RPCValidation.enum(object.fetch("sessionType"), HOOK_SESSION_TYPES, "sessionType"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_session_start"
+    def method = "autohand.hook.sessionStart"
+  end
+
+  HOOK_SESSION_END_REASONS = %w[quit clear exit error].freeze
+
+  HookSessionEndEvent = Data.define(:reason, :duration, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "session-end hook event")
+      new(
+        reason: RPCValidation.enum(object.fetch("reason"), HOOK_SESSION_END_REASONS, "reason"),
+        duration: RPCValidation.finite_number(object.fetch("duration"), "duration"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_session_end"
+    def method = "autohand.hook.sessionEnd"
+  end
+
+  HookSubagentStopEvent = Data.define(
+    :subagent_id,
+    :subagent_name,
+    :subagent_type,
+    :success,
+    :duration,
+    :error,
+    :timestamp
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "subagent-stop hook event")
+      new(
+        subagent_id: RPCValidation.string(object.fetch("subagentId"), "subagentId"),
+        subagent_name: RPCValidation.string(object.fetch("subagentName"), "subagentName"),
+        subagent_type: RPCValidation.string(object.fetch("subagentType"), "subagentType"),
+        success: RPCValidation.boolean(object.fetch("success"), "success"),
+        duration: RPCValidation.finite_number(object.fetch("duration"), "duration"),
+        error: RPCValidation.optional_string(object["error"], "error"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def success? = success
+    def type = "hook_subagent_stop"
+    def method = "autohand.hook.subagentStop"
+  end
+
+  HookPermissionRequestEvent = Data.define(:tool, :path, :command, :args, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "permission-request hook event")
+      args = RPCValidation.optional_object(object["args"], "args")
+      new(
+        tool: RPCValidation.string(object.fetch("tool"), "tool"),
+        path: RPCValidation.optional_string(object["path"], "path"),
+        command: RPCValidation.optional_string(object["command"], "command"),
+        args: args&.freeze,
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_permission_request"
+    def method = "autohand.hook.permissionRequest"
+  end
+
+  HookNotificationEvent = Data.define(:notification_type, :message, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "notification hook event")
+      new(
+        notification_type: RPCValidation.string(object.fetch("notificationType"), "notificationType"),
+        message: RPCValidation.string(object.fetch("message"), "message"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_notification"
+    def method = "autohand.hook.notification"
+  end
+
+  HookContextCompactedEvent = Data.define(
+    :cropped_count,
+    :summary,
+    :usage_percent,
+    :reason,
+    :timestamp
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "context-compacted hook event")
+      new(
+        cropped_count: RPCValidation.non_negative_integer(object.fetch("croppedCount"), "croppedCount"),
+        summary: RPCValidation.optional_string(object["summary"], "summary"),
+        usage_percent: RPCValidation.non_negative_finite_number(object.fetch("usagePercent"), "usagePercent"),
+        reason: RPCValidation.string(object.fetch("reason"), "reason"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_context_compacted"
+    def method = "autohand.hook.contextCompacted"
+  end
+
+  HookContextOverflowEvent = Data.define(
+    :tokens_before,
+    :tokens_after,
+    :cropped_count,
+    :usage_percent,
+    :timestamp
+  ) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "context-overflow hook event")
+      new(
+        tokens_before: RPCValidation.non_negative_integer(object.fetch("tokensBefore"), "tokensBefore"),
+        tokens_after: RPCValidation.non_negative_integer(object.fetch("tokensAfter"), "tokensAfter"),
+        cropped_count: RPCValidation.non_negative_integer(object.fetch("croppedCount"), "croppedCount"),
+        usage_percent: RPCValidation.non_negative_finite_number(object.fetch("usagePercent"), "usagePercent"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_context_overflow"
+    def method = "autohand.hook.contextOverflow"
+  end
+
+  HookContextWarningEvent = Data.define(:usage_percent, :remaining_tokens, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "context-warning hook event")
+      new(
+        usage_percent: RPCValidation.non_negative_finite_number(object.fetch("usagePercent"), "usagePercent"),
+        remaining_tokens: RPCValidation.non_negative_integer(object.fetch("remainingTokens"), "remainingTokens"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_context_warning"
+    def method = "autohand.hook.contextWarning"
+  end
+
+  HookContextCriticalEvent = Data.define(:usage_percent, :remaining_tokens, :timestamp) do
+    def self.from_rpc(value)
+      object = RPCValidation.object(value, "context-critical hook event")
+      new(
+        usage_percent: RPCValidation.non_negative_finite_number(object.fetch("usagePercent"), "usagePercent"),
+        remaining_tokens: RPCValidation.non_negative_integer(object.fetch("remainingTokens"), "remainingTokens"),
+        timestamp: RPCValidation.string(object.fetch("timestamp"), "timestamp")
+      )
+    end
+
+    def type = "hook_context_critical"
+    def method = "autohand.hook.contextCritical"
   end
 
   MCPInvokeRequestEvent = Data.define(:request_id, :tool_name, :args, :timestamp) do

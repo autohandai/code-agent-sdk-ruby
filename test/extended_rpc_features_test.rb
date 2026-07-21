@@ -339,15 +339,49 @@ class ExtendedRPCEventsTest < SDKTestCase
     sdk&.close
   end
 
-  def test_malformed_known_notifications_are_dropped_without_hiding_valid_events
+  def test_non_object_notification_params_preserve_exact_top_level_shape
+    sdk = client(env_vars: { "AUTOHAND_TEST_RAW_PARAMS" => "1" })
+    sdk.start
+    sdk.set_context_compaction(true)
+    events = sdk.events.take(6)
+    raw_params = events.to_h { |event| [event.method, event.params] }
+
+    assert_equal([1, "known-array"], raw_params.fetch("autohand.hook.preTool"))
+    assert_nil(raw_params.fetch("autohand.hook.stop"))
+    assert_equal("known-scalar", raw_params.fetch("autohand.hook.notification"))
+    assert_equal([2, "future-array"], raw_params.fetch("autohand.future.array"))
+    assert_nil(raw_params.fetch("autohand.future.null"))
+    assert_equal(42, raw_params.fetch("autohand.future.scalar"))
+    events.each { |event| assert_instance_of(AutohandSDK::UnknownNotificationEvent, event) }
+  ensure
+    sdk&.close
+  end
+
+  def test_malformed_known_hook_notifications_use_exact_method_fallbacks
     sdk = client(env_vars: { "AUTOHAND_TEST_MALFORMED_EVENT" => "1" })
     sdk.start
     sdk.set_context_compaction(true)
-    event = sdk.events.first
+    events = sdk.events.take(18)
+    hooks = events.grep(AutohandSDK::UnknownNotificationEvent).select do |event|
+      event.method.start_with?("autohand.hook.")
+    end
 
-    assert_instance_of(Hash, event)
-    assert_equal("error", event.fetch("type"))
-    assert_equal("sentinel", event.fetch("message"))
+    assert_equal(16, hooks.length)
+    assert_equal(
+      %w[
+        autohand.hook.preTool autohand.hook.postTool autohand.hook.fileModified
+        autohand.hook.prePrompt autohand.hook.postResponse autohand.hook.sessionError
+        autohand.hook.stop autohand.hook.sessionStart autohand.hook.sessionEnd
+        autohand.hook.subagentStop autohand.hook.permissionRequest autohand.hook.notification
+        autohand.hook.contextCompacted autohand.hook.contextOverflow autohand.hook.contextWarning
+        autohand.hook.contextCritical
+      ],
+      hooks.map(&:method)
+    )
+    hooks.each { |event| assert_equal(event.method, event.params.fetch("malformedMarker")) }
+    sentinel = events.find { |event| event.is_a?(Hash) && event["type"] == "error" }
+
+    assert_equal("sentinel", sentinel.fetch("message"))
   ensure
     sdk&.close
   end
@@ -432,6 +466,55 @@ class ExtendedRPCEventsTest < SDKTestCase
       assert_equal("actual", event.tokens_usage_status)
       assert_equal(2, event.tool_calls_count)
       assert_in_delta(415.2, event.duration)
+    end
+  end
+
+  def test_remaining_hook_notifications_become_native_events
+    with_typed_events do |sdk|
+      sdk.set_context_compaction(true)
+      events = sdk.events.take(22)
+
+      file = events.find { |event| event.is_a?(AutohandSDK::HookFileModifiedEvent) }
+
+      assert_instance_of(Hash, file)
+      assert_equal("file_modified", file.fetch("type"))
+      assert_equal("modify", file.change_type)
+      assert_equal("modify", file.file_change_type)
+      assert_equal("tool-7", file.fetch("tool_id"))
+      session_error = events.find { |event| event.is_a?(AutohandSDK::HookSessionErrorEvent) }
+
+      assert_equal(60, session_error.context.fetch("retryAfter"))
+      stop = events.find { |event| event.is_a?(AutohandSDK::HookStopEvent) }
+
+      assert_equal("unavailable", stop.tokens_usage_status)
+      assert_in_delta(300.5, stop.duration)
+      start = events.find { |event| event.is_a?(AutohandSDK::HookSessionStartEvent) }
+
+      assert_equal("resume", start.session_type)
+      finish = events.find { |event| event.is_a?(AutohandSDK::HookSessionEndEvent) }
+
+      assert_equal("clear", finish.reason)
+      subagent = events.find { |event| event.is_a?(AutohandSDK::HookSubagentStopEvent) }
+
+      assert_equal("Review failed", subagent.error)
+      permission = events.find { |event| event.is_a?(AutohandSDK::HookPermissionRequestEvent) }
+
+      assert_equal("updated", permission.args.fetch("content"))
+      notification = events.find { |event| event.is_a?(AutohandSDK::HookNotificationEvent) }
+
+      assert_equal("Context is nearly full", notification.message)
+      compacted = events.find { |event| event.is_a?(AutohandSDK::HookContextCompactedEvent) }
+
+      assert_in_delta(0.6125, compacted.usage_percent)
+      overflow = events.find { |event| event.is_a?(AutohandSDK::HookContextOverflowEvent) }
+
+      assert_in_delta(1.05, overflow.usage_percent)
+      warning = events.find { |event| event.is_a?(AutohandSDK::HookContextWarningEvent) }
+
+      assert_in_delta(0.805, warning.usage_percent)
+      critical = events.find { |event| event.is_a?(AutohandSDK::HookContextCriticalEvent) }
+
+      assert_in_delta(0.9575, critical.usage_percent)
     end
   end
 

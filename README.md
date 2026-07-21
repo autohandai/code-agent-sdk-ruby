@@ -187,6 +187,13 @@ Prompt acknowledgements are not completion responses: the enumerator remains
 open through `agent_end`. Closing it early aborts and drains that prompt before a
 later prompt can start; event queues are bounded to the newest 1,024 events.
 
+All 16 `autohand.hook.*` notifications have typed Ruby events. Unknown
+notifications and malformed known hooks become `UnknownNotificationEvent`
+values whose `params` preserve the original JSON top-level shape, including an
+array, `nil`, or scalar. See [Event Streaming](docs/event-streaming.md#typed-hook-notifications)
+for the full mapping and [the hook example](examples/09_hook_notifications.rb)
+for idiomatic dispatch.
+
 Discover and install community skills with immutable Ruby `Data` results:
 
 ```ruby
@@ -308,6 +315,7 @@ end
 - [Rails initializer](examples/05_rails_initializer.rb)
 - [Replayable autoresearch ledger](examples/07_autoresearch_ledger.rb)
 - [Session and auto-mode control](examples/08_session_and_automode.rb)
+- [Typed hook notifications](examples/09_hook_notifications.rb)
 
 ## Development
 

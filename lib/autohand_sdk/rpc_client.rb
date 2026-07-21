@@ -161,8 +161,20 @@ module AutohandSDK
       "autohand.automode.error" => ->(params) { AutomodeErrorEvent.from_rpc(params) },
       "autohand.hook.preTool" => ->(params) { HookPreToolEvent.from_rpc(params) },
       "autohand.hook.postTool" => ->(params) { HookPostToolEvent.from_rpc(params) },
+      "autohand.hook.fileModified" => ->(params) { HookFileModifiedEvent.from_rpc(params) },
       "autohand.hook.prePrompt" => ->(params) { HookPrePromptEvent.from_rpc(params) },
       "autohand.hook.postResponse" => ->(params) { HookPostResponseEvent.from_rpc(params) },
+      "autohand.hook.sessionError" => ->(params) { HookSessionErrorEvent.from_rpc(params) },
+      "autohand.hook.stop" => ->(params) { HookStopEvent.from_rpc(params) },
+      "autohand.hook.sessionStart" => ->(params) { HookSessionStartEvent.from_rpc(params) },
+      "autohand.hook.sessionEnd" => ->(params) { HookSessionEndEvent.from_rpc(params) },
+      "autohand.hook.subagentStop" => ->(params) { HookSubagentStopEvent.from_rpc(params) },
+      "autohand.hook.permissionRequest" => ->(params) { HookPermissionRequestEvent.from_rpc(params) },
+      "autohand.hook.notification" => ->(params) { HookNotificationEvent.from_rpc(params) },
+      "autohand.hook.contextCompacted" => ->(params) { HookContextCompactedEvent.from_rpc(params) },
+      "autohand.hook.contextOverflow" => ->(params) { HookContextOverflowEvent.from_rpc(params) },
+      "autohand.hook.contextWarning" => ->(params) { HookContextWarningEvent.from_rpc(params) },
+      "autohand.hook.contextCritical" => ->(params) { HookContextCriticalEvent.from_rpc(params) },
       "autohand.mcp.invokeRequest" => ->(params) { MCPInvokeRequestEvent.from_rpc(params) },
       "autohand.mcp.toolsChanged" => ->(params) { MCPToolsChangedEvent.from_rpc(params) },
       "autohand.learn.progress" => ->(params) { LearnProgressEvent.from_rpc(params) }
@@ -757,18 +769,17 @@ module AutohandSDK
     def handle_notification(params)
       method = params["_method"]
       if (factory = TYPED_NOTIFICATION_FACTORIES[method])
-        publish_event(factory.call(params))
+        begin
+          publish_event(factory.call(params))
+        rescue KeyError, TypeError, ArgumentError
+          publish_unknown_notification(method, params)
+        end
         return
       end
 
       event_type = NOTIFICATION_EVENT_TYPES[method]
       unless event_type
-        publish_event(
-          UnknownNotificationEvent.new(
-            rpc_method: method,
-            params: params.except("_method").freeze
-          )
-        )
+        publish_unknown_notification(method, params)
         return
       end
 
@@ -782,6 +793,20 @@ module AutohandSDK
         "session_id" => event["session_id"] || event["turn_id"].to_s,
         "reason" => "completed",
         "timestamp" => event["timestamp"]
+      )
+    end
+
+    def publish_unknown_notification(method, params)
+      raw_params = if params.instance_variable_defined?(:@autohand_raw_params)
+                     params.instance_variable_get(:@autohand_raw_params)
+                   else
+                     params.except("_method")
+                   end
+      publish_event(
+        UnknownNotificationEvent.new(
+          rpc_method: method,
+          params: raw_params.freeze
+        )
       )
     end
 

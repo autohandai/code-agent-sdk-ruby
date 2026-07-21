@@ -204,12 +204,51 @@ module FakeCLI
               params: { code: 500, message: "sentinel" }
             )
           end
+          if ENV["AUTOHAND_TEST_RAW_PARAMS"] == "1"
+            [
+              ["autohand.hook.preTool", [1, "known-array"]],
+              ["autohand.hook.stop", nil],
+              ["autohand.hook.notification", "known-scalar"],
+              ["autohand.future.array", [2, "future-array"]],
+              ["autohand.future.null", nil],
+              ["autohand.future.scalar", 42]
+            ].each do |notification_method, notification_params|
+              puts JSON.generate(
+                jsonrpc: "2.0", method: notification_method, params: notification_params
+              )
+            end
+          end
           if ENV["AUTOHAND_TEST_MALFORMED_EVENT"] == "1"
             puts JSON.generate(
               jsonrpc: "2.0",
               method: "autohand.automode.iteration",
               params: { sessionId: 7, iteration: "three" }
             )
+            [
+              ["autohand.hook.preTool", { toolId: "bad" }],
+              ["autohand.hook.postTool", { duration: "bad" }],
+              ["autohand.hook.fileModified", { changeType: "rename" }],
+              ["autohand.hook.prePrompt", { mentionedFiles: [42] }],
+              ["autohand.hook.postResponse", { tokensUsageStatus: "estimated" }],
+              ["autohand.hook.sessionError", { error: 42 }],
+              ["autohand.hook.stop", { tokensUsageStatus: "estimated" }],
+              ["autohand.hook.sessionStart", { sessionType: "restart" }],
+              ["autohand.hook.sessionEnd", { reason: "timeout" }],
+              ["autohand.hook.subagentStop", { success: "yes" }],
+              ["autohand.hook.permissionRequest", { args: [] }],
+              ["autohand.hook.notification", { message: 42 }],
+              ["autohand.hook.contextCompacted", {
+                croppedCount: -1, usagePercent: 0.6125, reason: "threshold"
+              }],
+              ["autohand.hook.contextOverflow", {
+                tokensBefore: -1, tokensAfter: 80_000, croppedCount: 6, usagePercent: 1.05
+              }],
+              ["autohand.hook.contextWarning", { usagePercent: 0.805, remainingTokens: -1 }],
+              ["autohand.hook.contextCritical", { usagePercent: -0.01 }]
+            ].each do |hook_method, hook_params|
+              hook_params[:malformedMarker] = hook_method
+              puts JSON.generate(jsonrpc: "2.0", method: hook_method, params: hook_params)
+            end
             puts JSON.generate(
               jsonrpc: "2.0",
               method: "autohand.error",
@@ -290,6 +329,57 @@ module FakeCLI
                 timestamp: "2026-07-21T01:10:00.000Z"
               }
             )
+            [
+              ["autohand.hook.fileModified", {
+                filePath: "lib/autohand_sdk.rb", changeType: "modify", toolId: "tool-7",
+                timestamp: "2026-07-21T01:10:01.000Z"
+              }],
+              ["autohand.hook.sessionError", {
+                error: "Rate limited", code: "RATE_LIMIT", context: { retryAfter: 60 },
+                timestamp: "2026-07-21T01:10:02.000Z"
+              }],
+              ["autohand.hook.stop", {
+                tokensUsed: 700, tokensUsageStatus: "unavailable", toolCallsCount: 3, duration: 300.5,
+                timestamp: "2026-07-21T01:10:03.000Z"
+              }],
+              ["autohand.hook.sessionStart", {
+                sessionType: "resume", timestamp: "2026-07-21T01:10:04.000Z"
+              }],
+              ["autohand.hook.sessionEnd", {
+                reason: "clear", duration: 450.5, timestamp: "2026-07-21T01:10:05.000Z"
+              }],
+              ["autohand.hook.subagentStop", {
+                subagentId: "sub-1", subagentName: "reviewer", subagentType: "code-review",
+                success: false, duration: 75.5, error: "Review failed",
+                timestamp: "2026-07-21T01:10:06.000Z"
+              }],
+              ["autohand.hook.permissionRequest", {
+                tool: "write_file", path: "README.md", command: "write README.md",
+                args: { content: "updated" }, timestamp: "2026-07-21T01:10:07.000Z"
+              }],
+              ["autohand.hook.notification", {
+                notificationType: "warning", message: "Context is nearly full",
+                timestamp: "2026-07-21T01:10:08.000Z"
+              }],
+              ["autohand.hook.contextCompacted", {
+                croppedCount: 4, summary: "Earlier turns summarized", usagePercent: 0.6125,
+                reason: "threshold", timestamp: "2026-07-21T01:10:09.000Z"
+              }],
+              ["autohand.hook.contextOverflow", {
+                tokensBefore: 120_000, tokensAfter: 80_000, croppedCount: 6, usagePercent: 1.05,
+                timestamp: "2026-07-21T01:10:10.000Z"
+              }],
+              ["autohand.hook.contextWarning", {
+                usagePercent: 0.805, remainingTokens: 12_000,
+                timestamp: "2026-07-21T01:10:11.000Z"
+              }],
+              ["autohand.hook.contextCritical", {
+                usagePercent: 0.9575, remainingTokens: 3_000,
+                timestamp: "2026-07-21T01:10:12.000Z"
+              }]
+            ].each do |hook_method, hook_params|
+              puts JSON.generate(jsonrpc: "2.0", method: hook_method, params: hook_params)
+            end
             puts JSON.generate(
               jsonrpc: "2.0",
               method: "autohand.mcp.invokeRequest",

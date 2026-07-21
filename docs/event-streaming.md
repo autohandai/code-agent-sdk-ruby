@@ -35,6 +35,58 @@ Common event types:
 - `changes_batch_end`
 - `error`
 
+## Typed hook notifications
+
+Hook notifications are validated at the transport boundary and exposed through
+these public event types:
+
+| JSON-RPC method | Ruby event | `type` / key readers |
+| --- | --- | --- |
+| `autohand.hook.preTool` | `HookPreToolEvent` | `hook_pre_tool`; `tool_id`, `tool_name`, `args` |
+| `autohand.hook.postTool` | `HookPostToolEvent` | `hook_post_tool`; `success?`, `duration`, `output` |
+| `autohand.hook.fileModified` | `HookFileModifiedEvent` | `file_modified`; `file_path`, `change_type`, `tool_id` |
+| `autohand.hook.prePrompt` | `HookPrePromptEvent` | `hook_pre_prompt`; `instruction`, `mentioned_files` |
+| `autohand.hook.postResponse` | `HookPostResponseEvent` | `hook_post_response`; `tokens_used`, `tokens_usage_status`, `tool_calls_count`, `duration` |
+| `autohand.hook.sessionError` | `HookSessionErrorEvent` | `hook_session_error`; `error`, `code`, `context` |
+| `autohand.hook.stop` | `HookStopEvent` | `hook_stop`; `tokens_used`, `tokens_usage_status`, `tool_calls_count`, `duration` |
+| `autohand.hook.sessionStart` | `HookSessionStartEvent` | `hook_session_start`; `session_type` |
+| `autohand.hook.sessionEnd` | `HookSessionEndEvent` | `hook_session_end`; `reason`, `duration` |
+| `autohand.hook.subagentStop` | `HookSubagentStopEvent` | `hook_subagent_stop`; `subagent_id`, `subagent_name`, `success?`, `error` |
+| `autohand.hook.permissionRequest` | `HookPermissionRequestEvent` | `hook_permission_request`; `tool`, `path`, `command`, `args` |
+| `autohand.hook.notification` | `HookNotificationEvent` | `hook_notification`; `notification_type`, `message` |
+| `autohand.hook.contextCompacted` | `HookContextCompactedEvent` | `hook_context_compacted`; `cropped_count`, `summary`, `usage_percent`, `reason` |
+| `autohand.hook.contextOverflow` | `HookContextOverflowEvent` | `hook_context_overflow`; `tokens_before`, `tokens_after`, `cropped_count`, `usage_percent` |
+| `autohand.hook.contextWarning` | `HookContextWarningEvent` | `hook_context_warning`; `usage_percent`, `remaining_tokens` |
+| `autohand.hook.contextCritical` | `HookContextCriticalEvent` | `hook_context_critical`; `usage_percent`, `remaining_tokens` |
+
+Every event responds to `method` with its exact JSON-RPC method and exposes a
+`timestamp`. `HookFileModifiedEvent` extends the existing string-keyed
+`file_modified` hash for compatibility; the other hook events are immutable
+Ruby `Data` values. Token usage status is `"actual"`, `"unavailable"`, or `nil`
+when omitted.
+
+`tokens_used` and `tool_calls_count` in post-response and stop events must be
+integers. Context counts and token values (`cropped_count`, `tokens_before`,
+`tokens_after`, and `remaining_tokens`) must be non-negative integers. Ruby
+retains its arbitrary-precision integer range. `usage_percent` must be finite
+and non-negative, but is intentionally not capped at `1.0` because an overflow
+event can report a larger value.
+
+An unknown notification, or a known hook that fails a required field, enum, or
+numeric check, becomes `AutohandSDK::UnknownNotificationEvent`. Its `method` is
+the exact JSON-RPC method and its `params` retain the original top-level JSON
+shape: `Hash`, `Array`, `nil`, `String`, numeric, `true`, or `false`. No
+`{"value" => ...}` wrapper is added to the event.
+
+```ruby
+case event
+when AutohandSDK::HookContextWarningEvent
+  warn "context usage=#{event.usage_percent}"
+when AutohandSDK::UnknownNotificationEvent
+  warn "raw #{event.method}: #{event.params.inspect}" if event.method.start_with?("autohand.hook.")
+end
+```
+
 The CLI acknowledges `autohand.prompt` before it emits the turn. The SDK therefore
 keeps the enumerator open after that acknowledgement and completes it only after
 the terminal `agent_end` event. It emits `agent_end` after `turn_end` so stream
