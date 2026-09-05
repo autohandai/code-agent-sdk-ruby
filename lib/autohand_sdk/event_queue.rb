@@ -4,7 +4,7 @@ module AutohandSDK
   class EventQueue
     DEFAULT_LIMIT = 1_024
 
-    def initialize(limit: DEFAULT_LIMIT)
+    def initialize(limit: DEFAULT_LIMIT, overflow: :drop_oldest)
       raise ArgumentError, "event queue limit must be positive" unless limit.positive?
 
       @limit = limit
@@ -12,11 +12,21 @@ module AutohandSDK
       @mutex = Mutex.new
       @condition = ConditionVariable.new
       @closed = false
+      @overflow = overflow
+      @error = nil
     end
 
     def push(item)
       @mutex.synchronize do
         return if @closed
+
+        if @overflow == :error && @items.length >= @limit
+          @error = TransportError.new("Prompt event queue overflow (limit #{@limit})")
+          @closed = true
+          @items.clear
+          @condition.broadcast
+          return
+        end
 
         @items << item
         @items.shift while @items.length > @limit
@@ -28,6 +38,8 @@ module AutohandSDK
       deadline = timeout && (Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout)
 
       @mutex.synchronize do
+        raise @error if @error
+
         while @items.empty? && !@closed
           if deadline
             remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -38,6 +50,8 @@ module AutohandSDK
             @condition.wait(@mutex)
           end
         end
+
+        raise @error if @error
 
         @items.shift unless @items.empty?
       end

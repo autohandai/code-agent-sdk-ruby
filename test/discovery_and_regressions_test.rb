@@ -209,7 +209,7 @@ class DiscoveryAndRegressionsTest < SDKTestCase
       second_events = rpc.stream_prompt("message" => "second").to_a
 
       assert_equal("turn_start", first_event.fetch("type"))
-      assert_includes(second_events.map { |event| event["type"] }, "agent_end")
+      assert_includes(second_events.map { |event| event["type"] }, "turn_end")
       assert_equal(["second"], second_events.filter_map { |event| event["delta"] })
       refute_includes(second_events.filter_map { |event| event["delta"] }, "drained-first")
 
@@ -288,7 +288,7 @@ class DiscoveryAndRegressionsTest < SDKTestCase
       )
     end
 
-    prompt_event = rpc.stub(:prompt, blocking_prompt) do
+    prompt_event = rpc.stub(:request_prompt, blocking_prompt) do
       rpc.stream_prompt("message" => "hello").first
     end
     notifier.join

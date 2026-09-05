@@ -23,6 +23,7 @@ The gem:
 - Provides `AutohandSDK::Client` for low-level control and `AutohandSDK::Agent` / `Run` for application code.
 - Exposes slash commands, persistent goals, and the replayable autoresearch ledger through exact JSON-RPC methods.
 - Returns immutable typed values for skill-registry and MCP discovery APIs.
+- Supports [resumable step control](docs/step-control.md) with host predicates and persisted tool results.
 - Keeps Rails optional through a Railtie that only loads when Rails is present.
 - Uses Ruby stdlib for runtime behavior; development dependencies stay out of production installs.
 

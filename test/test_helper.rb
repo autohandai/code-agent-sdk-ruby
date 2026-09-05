@@ -56,7 +56,7 @@ module FakeCLI
           puts JSON.generate(jsonrpc: "2.0", method: "autohand.messageUpdate", params: { messageId: "msg_1", delta: "Hello " })
           puts JSON.generate(jsonrpc: "2.0", method: "autohand.messageUpdate", params: { messageId: "msg_1", delta: "Ruby" })
           puts JSON.generate(jsonrpc: "2.0", method: "autohand.messageEnd", params: { messageId: "msg_1", content: "Hello Ruby" })
-          puts JSON.generate(jsonrpc: "2.0", method: "autohand.turnEnd", params: { turnId: "turn_1" })
+          puts JSON.generate(jsonrpc: "2.0", method: "autohand.turnEnd", params: { turnId: "turn_1", reason: "completed" })
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { content: "Hello Ruby", sessionId: "session_test" })
         when "autohand.permissionResponse"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { received: params })

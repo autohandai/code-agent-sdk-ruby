@@ -12,6 +12,12 @@ module AutohandSDK
   autoload :Transport, "autohand_sdk/transport"
   autoload :RPCClient, "autohand_sdk/rpc_client"
   autoload :HookEvents, "autohand_sdk/hook_events"
+  autoload :AgentStepToolCall, "autohand_sdk/step_control"
+  autoload :AgentStepToolResult, "autohand_sdk/step_control"
+  autoload :AgentStep, "autohand_sdk/step_control"
+  autoload :StepEndEvent, "autohand_sdk/step_control"
+  autoload :StopConditionContext, "autohand_sdk/step_control"
+  autoload :StepControl, "autohand_sdk/step_control"
   autoload :JsonOutput, "autohand_sdk/json_output"
   autoload :Error, "autohand_sdk/errors"
   autoload :ConfigurationError, "autohand_sdk/errors"
@@ -58,6 +64,17 @@ module AutohandSDK
   autoload :AutomodeGetLogResult, "autohand_sdk/rpc_types"
 
   class << self
+    # These factories share names with the other SDKs; they return predicates.
+    # rubocop:disable Naming/PredicatePrefix
+    def is_step_count(count)
+      StepControl.step_count(count)
+    end
+
+    def has_tool_call(name)
+      StepControl.tool_call(name)
+    end
+    # rubocop:enable Naming/PredicatePrefix
+
     def config
       @config ||= Configuration.new
     end

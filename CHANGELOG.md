@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Resumable `stop_when` predicates, `is_step_count`, `has_tool_call`, typed step
+  events and records, and `Run` results with `steps` and `stopped` status.
+- Real CLI read/stop/continue integration using local auth and Autohand AI HTTP mocks.
 - Immutable typed skill-registry lookup and skill-installation results.
 - Immutable typed MCP server, tool, and server-configuration discovery results.
 - Current CLI runtime flags, feature settings, slash-command helpers, and persistent-goal RPC methods.
@@ -27,6 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserve completed, stopped, failed, and aborted terminal reasons without
+  synthesizing completed `agent_end` events for every `turn_end`.
+- Serialize both ordinary and streaming prompts; `Client#prompt` now waits for
+  terminal completion while returning the original RPC result.
+- Scope cancellation to the run, including unstarted, queued and completed runs;
+  cancel pending predicates and preserve observed failures during cleanup.
+- Fail prompt queue overflow explicitly instead of discarding events needed for
+  the decision handshake. Global event subscriptions retain their bounded history.
 - Removed the fixed 50 ms transport startup sleep while retaining the readiness RPC.
 - Treated prompt responses as acknowledgements and streamed through terminal `agent_end` notifications.
 - Aborted and drained prompts when enumerators stop early, with fresh-generation fallback on cleanup failure.

@@ -1,5 +1,11 @@
 # API Reference
 
+`Agent#send`, `#run`, `#stream`, and `#run_json` accept `stop_when`, as do
+`Client#prompt` and `#stream_prompt`. Use `AutohandSDK.is_step_count(n)`,
+`AutohandSDK.has_tool_call(name)`, or custom boolean callbacks. Runs expose
+persisted `steps` and a resumable `stopped` status. See [step control](step-control.md)
+for typed step events, callback errors, cancellation, and queue behavior.
+
 ## `AutohandSDK.configure`
 
 Sets process-level defaults for clients created through `AutohandSDK.client` or `AutohandSDK.agent`.
@@ -25,7 +31,7 @@ Start and stop the CLI subprocess.
 
 ### `#stream_prompt(message_or_params, **options)`
 
-Sends a prompt and returns an `Enumerator` of event hashes.
+Sends a prompt and returns an `Enumerator` of lifecycle hashes and typed events.
 
 ```ruby
 sdk.stream_prompt("Review lib/autohand_sdk/client.rb").each do |event|
@@ -35,7 +41,8 @@ end
 
 ### `#prompt(message_or_params, **options)`
 
-Sends a prompt and returns the raw RPC result. Use `stream_prompt` for live output.
+Waits for terminal completion and returns the original RPC result. It shares the
+same queue and `stop_when` handling as `stream_prompt`, which provides live output.
 
 ### `#abort(reason: nil)`
 
@@ -223,7 +230,8 @@ Runs to completion and returns:
   id: "run_...",
   status: "completed",
   text: "...",
-  events: [...]
+  events: [...],
+  steps: [...]
 }
 ```
 
@@ -249,9 +257,10 @@ All `AutohandSDK::Client` goal and autoresearch methods are also available on
 - `#stream` returns a replayable event enumerator. If its last active consumer
   exits early and no `#wait` caller is active, the run aborts and joins its
   background pump; other active consumers continue normally.
-- `#wait` returns the final result hash.
+- `#wait` returns the final result hash; repeated calls retain results or errors.
 - `#json(validate: nil)` parses the final text as JSON.
-- `#abort` aborts the active run.
+- `#abort` cancels this run. Unstarted or queued runs do not interrupt another
+  prompt, and completed runs ignore abort.
 
 ## `AutohandSDK::CLIInstaller`
 

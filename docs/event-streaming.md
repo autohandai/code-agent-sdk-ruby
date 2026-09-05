@@ -1,16 +1,20 @@
 # Event Streaming
 
-`stream_prompt` returns a Ruby `Enumerator`. Events are string-keyed hashes that mirror JSON-RPC payloads and include snake-case aliases for common camel-case fields.
+`stream_prompt` returns a Ruby `Enumerator`. Lifecycle events are string-keyed
+hashes with snake-case aliases for common camel-case fields. Typed step and hook
+events expose readers instead; use `event.type` when available.
 
 ```ruby
 sdk.stream_prompt("Run the tests and summarize failures").each do |event|
-  case event["type"]
+  case event.respond_to?(:type) ? event.type : event["type"]
   when "message_update"
     print event["delta"]
   when "tool_start"
     warn "Running #{event["tool_name"]}"
   when "permission_request"
     sdk.allow_permission(event["request_id"], scope: :once)
+  when "step_end"
+    puts "Completed tool step #{event.step.step_number}"
   end
 end
 ```
@@ -21,6 +25,7 @@ Common event types:
 - `agent_end`
 - `turn_start`
 - `turn_end`
+- `step_end` (typed `StepEndEvent`; see [step control](step-control.md))
 - `message_start`
 - `message_update`
 - `message_end`
@@ -88,16 +93,17 @@ end
 ```
 
 The CLI acknowledges `autohand.prompt` before it emits the turn. The SDK therefore
-keeps the enumerator open after that acknowledgement and completes it only after
-the terminal `agent_end` event. It emits `agent_end` after `turn_end` so stream
-consumers have a stable completion marker.
+keeps the enumerator open after that acknowledgement and completes it on
+`turn_end` or `agent_end`, preserving the terminal reason. It does not synthesize
+an additional agent event for each turn.
 
 Each `RPCClient#events` enumerator has an independent queue. Global subscribers
 and the active prompt stream receive their own copies instead of stealing
-notifications. Queues retain the newest 1,024 events, bounding memory when a
-consumer is slow or absent.
+notifications. Global queues retain the newest 1,024 events. The prompt queue
+fails on overflow so a slow consumer cannot silently lose a step decision or
+terminal event.
 
-Only one prompt stream is active at a time. Ending a prompt enumeration early
+Only one prompt is active at a time, including calls to `prompt`. Ending a prompt enumeration early
 sends `autohand.abort` and drains that turn through its terminal event before the
 next prompt starts. If the CLI does not acknowledge and terminate the abandoned
 turn within two seconds, the SDK stops the transport so a later operation starts

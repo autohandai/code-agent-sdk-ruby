@@ -73,7 +73,7 @@ class ClientTest < SDKTestCase
     events = sdk.stream_prompt("Say hello").to_a
 
     assert_includes(events.map { |event| event["type"] }, "message_update")
-    assert_includes(events.map { |event| event["type"] }, "agent_end")
+    assert_includes(events.map { |event| event["type"] }, "turn_end")
     assert_equal("msg_1", events.find { |event| event["type"] == "message_update" }["message_id"])
   ensure
     sdk&.close

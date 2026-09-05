@@ -6,6 +6,7 @@ The Ruby SDK is a thin, explicit wrapper around the Autohand Code CLI JSON-RPC m
 - [API Reference](API_REFERENCE.md)
 - [Configuration](configuration.md)
 - [Event Streaming](event-streaming.md)
+- [Resumable Step Control](step-control.md)
 - [Error Handling](error-handling.md)
 - [Permissions](permissions.md)
 - [Plan Mode](plan-mode.md)

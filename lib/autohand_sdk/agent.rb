@@ -20,8 +20,9 @@ module AutohandSDK
       @params = params
       @id = id || "run_#{Time.now.to_i.to_s(36)}_#{SecureRandom.hex(4)}"
       @events = []
+      @steps = []
       @text = +""
-      @status = "completed"
+      @status = nil
       @started = false
       @completed = false
       @error = nil
@@ -68,7 +69,7 @@ module AutohandSDK
     def wait
       thread = register_waiter
       begin
-        thread.join
+        thread&.join
       ensure
         @mutex.synchronize { @waiters -= 1 }
       end
@@ -83,8 +84,20 @@ module AutohandSDK
     end
 
     def abort
-      @mutex.synchronize { @status = "aborted" }
-      @client.abort
+      thread, cancel = @mutex.synchronize do
+        return if @completed
+        next [@thread, false] if @cancel_requested
+
+        @cancel_requested = true
+        @status = "aborted" unless @status == "failed"
+        unless @started
+          @started = @completed = true
+          @condition.broadcast
+        end
+        [@thread, true]
+      end
+      cancel ? cancel_pump(thread) : thread&.join
+      nil
     end
 
     private
@@ -95,7 +108,8 @@ module AutohandSDK
 
     def start_pump
       @started = true
-      @thread = Thread.new { pump }
+      # Inherit the mask so immediate cancellation cannot arrive before pump's rescue.
+      Thread.handle_interrupt(PumpCancelled => :never) { @thread = Thread.new { pump } }
       @thread.name = "#{PUMP_THREAD_PREFIX}#{@id}" if @thread.respond_to?(:name=)
     end
 
@@ -112,7 +126,7 @@ module AutohandSDK
         return unless abandon_pump?(settled)
 
         @cancel_requested = true
-        @status = "aborted"
+        @status = "aborted" unless @status == "failed"
         @thread
       end
     end
@@ -150,9 +164,13 @@ module AutohandSDK
     end
 
     def pump
-      prompt_stream = @client.stream_prompt(@params)
-      @mutex.synchronize { @prompt_stream = prompt_stream }
-      prompt_stream.each { |event| record(event) }
+      Thread.handle_interrupt(PumpCancelled => :immediate) do
+        raise PumpCancelled if @mutex.synchronize { @cancel_requested }
+
+        prompt_stream = @client.stream_prompt(@params)
+        @mutex.synchronize { @prompt_stream = prompt_stream }
+        prompt_stream.each { |event| record(event) }
+      end
     rescue PumpCancelled
       nil
     rescue StandardError => e
@@ -173,6 +191,17 @@ module AutohandSDK
           @text << event["delta"].to_s
         elsif event_type == "message_end" && event.key?("content")
           @text = event["content"].to_s
+        elsif event_type == "step_end"
+          @steps << event.step
+        elsif event_type == "error"
+          @status = "failed"
+        elsif %w[turn_end agent_end].include?(event_type) && !%w[failed aborted].include?(@status)
+          @status = case event["reason"]
+                    when "completed" then @status == "stopped" ? @status : "completed"
+                    when "stop_condition", "stopped" then "stopped"
+                    when "aborted" then "aborted"
+                    else "failed"
+                    end
         end
         @condition.broadcast
       end
@@ -180,11 +209,14 @@ module AutohandSDK
 
     def result
       @mutex.synchronize do
+        raise TransportError, "Prompt ended without a terminal event" unless @status
+
         {
           id: @id,
           status: @status,
           text: @text.dup,
-          events: @events.dup
+          events: @events.dup,
+          steps: @steps.dup
         }
       end
     end

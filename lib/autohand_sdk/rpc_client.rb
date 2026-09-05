@@ -5,6 +5,7 @@ require_relative "rpc_types"
 require_relative "transport"
 require_relative "utils"
 require_relative "autoresearch_rpc"
+require_relative "step_control"
 
 module AutohandSDK
   # RPC routing and event lifecycle share state and remain co-located intentionally.
@@ -21,8 +22,10 @@ module AutohandSDK
         @result = nil
         @error = nil
         @thread = Thread.new do
-          result = work.call
-          @mutex.synchronize { @result = result }
+          Thread.handle_interrupt(Exception => :immediate) do
+            result = work.call
+            @mutex.synchronize { @result = result }
+          end
         rescue StandardError => e
           @mutex.synchronize { @error = e }
         ensure
@@ -51,6 +54,34 @@ module AutohandSDK
 
         @thread.kill
         @thread.join
+      end
+    end
+
+    class StepDecision < RequestWorker
+      def initialize(event, steps, conditions, &send_decision)
+        @decision_mutex = Mutex.new
+        @submitted = false
+        super() do
+          failure = nil
+          begin
+            context = StopConditionContext.new(steps: steps)
+            stop = conditions.any? do |condition|
+              RPCValidation.boolean(condition.call(context), "stop condition result")
+            end
+          rescue StandardError => e
+            failure = e
+            stop = true
+          end
+          @decision_mutex.synchronize { @submitted = true }
+          result = send_decision.call("stepId" => event.step_id, "stop" => stop)
+          raise RPCError, "CLI rejected step decision" unless result.is_a?(Hash) && result["success"] == true
+
+          failure
+        end
+      end
+
+      def submitted?
+        @decision_mutex.synchronize { @submitted }
       end
     end
 
@@ -136,6 +167,7 @@ module AutohandSDK
       "autohand.agentEnd" => "agent_end",
       "autohand.turnStart" => "turn_start",
       "autohand.turnEnd" => "turn_end",
+      "autohand.stepEnd" => "step_end",
       "autohand.messageStart" => "message_start",
       "autohand.messageUpdate" => "message_update",
       "autohand.messageEnd" => "message_end",
@@ -256,17 +288,19 @@ module AutohandSDK
     end
 
     def prompt(params)
-      request(RPC_METHODS.fetch(:prompt), Utils.with_rpc_aliases(params))
+      stream_prompt(params).each { |_event| nil }
     end
 
     def stream_prompt(params)
+      wire, conditions = StepControl.prepare(Utils.with_rpc_aliases(params))
       Enumerator.new do |yielder|
         @prompt_serial_mutex.synchronize do
-          context = open_prompt_context
+          context = nil
           begin
-            run_prompt_request(Utils.with_rpc_aliases(params), yielder, context)
+            Thread.handle_interrupt(Exception => :never) { context = open_prompt_context }
+            run_prompt_request(wire, conditions, yielder, context)
           ensure
-            close_prompt_context(context)
+            close_prompt_context(context) if context
           end
         end
       end
@@ -601,17 +635,63 @@ module AutohandSDK
       raise TransportError, "CLI startup check failed: #{e.message}#{detail}"
     end
 
-    def run_prompt_request(params, yielder, context)
-      worker = RequestWorker.new { prompt(params) }
+    def request_prompt(params)
+      request(RPC_METHODS.fetch(:prompt), params)
+    end
+
+    # The turn owns its request, decision worker and cleanup until the mutex is released.
+    # rubocop:disable Metrics/MethodLength, Metrics/BlockLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+    def run_prompt_request(params, conditions, yielder, context)
       seen_events = false
       terminal_seen = false
       cleanup_required = true
+      steps = [].freeze
+      pending_steps = []
+      decision = nil
+      predicate_error = nil
+      deadline = nil
+      worker = nil
+      Thread.handle_interrupt(Exception => :never) { worker = RequestWorker.new { request_prompt(params) } }
 
       loop do
+        if decision&.done?
+          raise decision.error if decision.error
+
+          predicate_error ||= decision.result
+          deadline ||= monotonic_now + PROMPT_CLEANUP_TIMEOUT if predicate_error
+          decision = nil
+        end
+        if !decision && !pending_steps.empty?
+          event, snapshot = pending_steps.shift
+          Thread.handle_interrupt(Exception => :never) do
+            decision = StepDecision.new(event, snapshot, conditions) do |choice|
+              request("autohand.stepDecision", choice)
+            end
+          end
+        end
+        if deadline && monotonic_now >= deadline
+          raise(predicate_error || TransportError.new("Prompt did not settle after an error"))
+        end
+
+        if worker.done? && (worker.error || prompt_rejected?(worker.result))
+          cleanup_required = false if worker.error.is_a?(RPCError) || prompt_rejected?(worker.result)
+          raise worker.error if worker.error
+
+          raise_prompt_rejection(worker.result)
+        end
+
         event = context.queue.pop(timeout: 0.05)
         if event
           seen_events = true
           terminal_seen = terminal_event?(event)
+          if event.is_a?(Hash) && event["type"] == "step_end"
+            event = StepEndEvent.from_rpc(event)
+            unless conditions.empty?
+              steps = [*steps, event.step].freeze
+              pending_steps << [event, steps]
+            end
+          end
+          deadline ||= monotonic_now + PROMPT_CLEANUP_TIMEOUT if event.is_a?(Hash) && event["type"] == "error"
           yielder << event
           break if terminal_seen
 
@@ -621,14 +701,7 @@ module AutohandSDK
         raise TransportError, "Prompt event stream closed" if context.queue.closed?
         next unless worker.done?
 
-        if worker.error
-          cleanup_required = seen_events
-          raise worker.error
-        end
-
         result = worker.result
-        cleanup_required = seen_events if prompt_rejected?(result)
-        raise_prompt_rejection(result)
         next unless legacy_prompt_result?(result)
 
         terminal_seen = true
@@ -640,16 +713,33 @@ module AutohandSDK
         break
       end
 
-      settle_prompt_worker(worker)
+      result = settle_prompt_worker(worker)
+      predicate_error ||= settle_step_decision(decision)
+      raise predicate_error if predicate_error
+
+      result
     ensure
-      cleanup_abandoned_prompt(context) if worker && cleanup_required && !terminal_seen
-      worker&.stop
+      Thread.handle_interrupt(Exception => :never) do
+        decision&.stop
+        cleanup_abandoned_prompt(context) if worker && cleanup_required && !terminal_seen
+        worker&.stop
+      end
+    end
+    # rubocop:enable Metrics/MethodLength, Metrics/BlockLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+
+    def settle_step_decision(decision)
+      return unless decision&.submitted?
+
+      raise TransportError, "Step decision acknowledgement did not settle" unless decision.join(PROMPT_CLEANUP_TIMEOUT)
+      raise decision.error if decision.error
+
+      decision.result
     end
 
     def open_prompt_context
       @prompt_state_mutex.synchronize do
         @prompt_generation += 1
-        PromptContext.new(generation: @prompt_generation, queue: EventQueue.new).tap do |context|
+        PromptContext.new(generation: @prompt_generation, queue: EventQueue.new(overflow: :error)).tap do |context|
           @prompt_context = context
         end
       end
@@ -671,6 +761,7 @@ module AutohandSDK
       raise worker.error if worker.error
 
       raise_prompt_rejection(worker.result)
+      worker.result
     end
 
     def cleanup_abandoned_prompt(context)
@@ -681,6 +772,8 @@ module AutohandSDK
       terminal_seen = drain_prompt_until_terminal(context, abort_worker, deadline)
       return if terminal_seen && abort_worker.join([deadline - monotonic_now, 0].max)
 
+      safely_stop_transport
+    rescue TransportError
       safely_stop_transport
     ensure
       abort_worker&.stop
@@ -715,7 +808,7 @@ module AutohandSDK
     end
 
     def terminal_event?(event)
-      event.is_a?(Hash) && event["type"] == "agent_end"
+      event.is_a?(Hash) && %w[turn_end agent_end].include?(event["type"])
     end
 
     def legacy_prompt_result?(result)
@@ -785,15 +878,6 @@ module AutohandSDK
 
       event = notification_to_event(event_type, params)
       publish_event(event)
-
-      return unless method == "autohand.turnEnd"
-
-      publish_event(
-        "type" => "agent_end",
-        "session_id" => event["session_id"] || event["turn_id"].to_s,
-        "reason" => "completed",
-        "timestamp" => event["timestamp"]
-      )
     end
 
     def publish_unknown_notification(method, params)
