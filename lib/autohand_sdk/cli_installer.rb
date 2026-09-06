@@ -14,7 +14,7 @@ require_relative "errors"
 require_relative "version"
 
 module AutohandSDK
-  # rubocop:disable Metrics/ModuleLength
+  # rubocop:disable-next Metrics/ModuleLength
   module CLIInstaller
     DEFAULT_RELEASE_BASE_URL = "https://github.com/autohandai/code-cli/releases/latest/download"
     DEFAULT_INSTALL_DIR = File.join(Dir.home, ".autohand", "bin")
@@ -320,5 +320,4 @@ module AutohandSDK
       end
     end
   end
-  # rubocop:enable Metrics/ModuleLength
 end

@@ -8,7 +8,7 @@ require_relative "utils"
 
 module AutohandSDK
   # The public client intentionally keeps lifecycle and CLI capability methods together.
-  # rubocop:disable Metrics/ClassLength
+  # rubocop:disable-next Metrics/ClassLength
   class Client
     PERMISSION_SCOPE_DECISIONS = {
       allow: {
@@ -134,7 +134,7 @@ module AutohandSDK
       BrowserHandoffAttachLatestResult.from_rpc(@rpc_client.attach_latest_browser_handoff)
     end
 
-    # rubocop:disable Metrics/ParameterLists
+    # rubocop:disable-next Metrics/ParameterLists
     def start_automode(
       prompt,
       max_iterations: nil,
@@ -156,7 +156,6 @@ module AutohandSDK
       )
       AutomodeStartResult.from_rpc(result)
     end
-    # rubocop:enable Metrics/ParameterLists
 
     def get_automode_status
       ensure_started
@@ -598,5 +597,4 @@ module AutohandSDK
       raise ArgumentError, "permission scope must be one of: once, session, project, user"
     end
   end
-  # rubocop:enable Metrics/ClassLength
 end

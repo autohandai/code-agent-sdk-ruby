@@ -7,7 +7,7 @@ gemspec
 group :development do
   gem "irb"
   gem "rake"
-  gem "rubocop", require: false
+  gem "rubocop", "~> 1.90.0", require: false
   gem "rubocop-minitest", require: false
   gem "rubocop-rake", require: false
   gem "yard"

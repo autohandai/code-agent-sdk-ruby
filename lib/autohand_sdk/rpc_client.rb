@@ -9,7 +9,7 @@ require_relative "step_control"
 
 module AutohandSDK
   # RPC routing and event lifecycle share state and remain co-located intentionally.
-  # rubocop:disable Metrics/ClassLength
+  # rubocop:disable-next Metrics/ClassLength
   class RPCClient
     include AutoresearchRPC
 
@@ -350,7 +350,7 @@ module AutohandSDK
       request(RPC_METHODS.fetch(:browser_handoff_attach_latest), params.to_rpc)
     end
 
-    # rubocop:disable Metrics/ParameterLists
+    # rubocop:disable-next Metrics/ParameterLists
     def start_automode(
       prompt,
       max_iterations: nil,
@@ -371,7 +371,6 @@ module AutohandSDK
       )
       request(RPC_METHODS.fetch(:automode_start), params.to_rpc)
     end
-    # rubocop:enable Metrics/ParameterLists
 
     def get_automode_status
       request(RPC_METHODS.fetch(:automode_status), AutomodeStatusParams.new.to_rpc)
@@ -640,7 +639,7 @@ module AutohandSDK
     end
 
     # The turn owns its request, decision worker and cleanup until the mutex is released.
-    # rubocop:disable Metrics/MethodLength, Metrics/BlockLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+    # rubocop:disable-next Metrics/MethodLength, Metrics/BlockLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     def run_prompt_request(params, conditions, yielder, context)
       seen_events = false
       terminal_seen = false
@@ -725,7 +724,6 @@ module AutohandSDK
         worker&.stop
       end
     end
-    # rubocop:enable Metrics/MethodLength, Metrics/BlockLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
     def settle_step_decision(decision)
       return unless decision&.submitted?
@@ -955,5 +953,4 @@ module AutohandSDK
       event
     end
   end
-  # rubocop:enable Metrics/ClassLength
 end

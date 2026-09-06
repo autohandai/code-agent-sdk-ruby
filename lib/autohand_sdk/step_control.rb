@@ -32,13 +32,13 @@ module AutohandSDK
       number = RPCValidation.integer(object.fetch("stepNumber"), "stepNumber")
       raise ArgumentError, "stepNumber must be positive" unless number.positive?
 
+      calls = RPCValidation.array(object.fetch("toolCalls"), "toolCalls")
+      results = RPCValidation.array(object.fetch("toolResults"), "toolResults")
       new(
         step_number: number,
         thought: RPCValidation.optional_string(object["thought"], "thought")&.freeze,
-        tool_calls: RPCValidation.array(object.fetch("toolCalls"), "toolCalls")
-                    .map { |call| AgentStepToolCall.from_rpc(call) }.freeze,
-        tool_results: RPCValidation.array(object.fetch("toolResults"), "toolResults")
-                      .map { |result| AgentStepToolResult.from_rpc(result) }.freeze
+        tool_calls: calls.map { |call| AgentStepToolCall.from_rpc(call) }.freeze,
+        tool_results: results.map { |result| AgentStepToolResult.from_rpc(result) }.freeze
       )
     end
   end

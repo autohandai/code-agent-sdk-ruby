@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # The immutable discovery wire values form one cohesive public contract.
-# rubocop:disable Metrics/ModuleLength
+# rubocop:disable-next Metrics/ModuleLength
 module AutohandSDK
   module RPCValue
     module_function
@@ -145,4 +145,3 @@ module AutohandSDK
     end
   end
 end
-# rubocop:enable Metrics/ModuleLength

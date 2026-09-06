@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # The immutable RPC request and response values form one public contract.
-# rubocop:disable Metrics/ModuleLength
+# rubocop:disable-next Metrics/ModuleLength
 module AutohandSDK
   module RPCValidation
     module_function
@@ -1268,4 +1268,3 @@ module AutohandSDK
     alias_method :success?, :success
   end
 end
-# rubocop:enable Metrics/ModuleLength

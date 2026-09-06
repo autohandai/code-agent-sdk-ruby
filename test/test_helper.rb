@@ -7,7 +7,7 @@ require "fileutils"
 require "minitest/autorun"
 require "tmpdir"
 
-# rubocop:disable Metrics/ModuleLength -- The inline executable keeps transport tests self-contained.
+# rubocop:disable-next Metrics/ModuleLength -- The inline executable keeps transport tests self-contained.
 module FakeCLI
   module_function
 
@@ -524,7 +524,6 @@ module FakeCLI
     RUBY
   end
 end
-# rubocop:enable Metrics/ModuleLength
 
 class SDKTestCase < Minitest::Test
   def setup

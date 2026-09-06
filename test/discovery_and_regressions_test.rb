@@ -6,7 +6,7 @@ require_relative "test_helper"
 require_relative "../lib/autohand_sdk/event_queue"
 
 # Inline subprocess fixtures keep lifecycle regressions self-contained.
-# rubocop:disable Metrics/ClassLength
+# rubocop:disable-next Metrics/ClassLength
 class DiscoveryAndRegressionsTest < SDKTestCase
   class RecordingTransport
     attr_reader :requests
@@ -450,4 +450,3 @@ class DiscoveryAndRegressionsTest < SDKTestCase
     RUBY
   end
 end
-# rubocop:enable Metrics/ClassLength

@@ -2,7 +2,7 @@
 
 require_relative "test_helper"
 
-# rubocop:disable Metrics/ClassLength
+# rubocop:disable-next Metrics/ClassLength
 class ClientTest < SDKTestCase
   class ContractTransport
     attr_reader :requests
@@ -510,4 +510,3 @@ class ClientTest < SDKTestCase
     [AutohandSDK::Client.new({ startup_check: false }, rpc_client: rpc_client), transport]
   end
 end
-# rubocop:enable Metrics/ClassLength

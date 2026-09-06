@@ -12,7 +12,7 @@ require_relative "errors"
 
 module AutohandSDK
   # Process-generation ownership and JSON-RPC framing are kept together deliberately.
-  # rubocop:disable Metrics/ClassLength
+  # rubocop:disable-next Metrics/ClassLength
   class Transport
     PROCESS_STOP_TIMEOUT = 1.0
     READER_JOIN_TIMEOUT = 0.5
@@ -598,5 +598,4 @@ module AutohandSDK
       tail.empty? ? "" : ":\n#{tail}"
     end
   end
-  # rubocop:enable Metrics/ClassLength
 end

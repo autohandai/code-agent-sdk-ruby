@@ -213,8 +213,8 @@ class StepControlTest < SDKTestCase
   def requests(method)
     return [] unless File.exist?(@request_log)
 
-    File.readlines(@request_log).map { |line| JSON.parse(line) }
-                                .select { |request| request["method"] == "autohand.#{method}" }
+    log = File.readlines(@request_log).map { |line| JSON.parse(line) }
+    log.select { |request| request["method"] == "autohand.#{method}" }
   end
 
   def within(&)
