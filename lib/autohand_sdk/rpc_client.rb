@@ -121,6 +121,7 @@ module AutohandSDK
       get_messages: "autohand.getMessages",
       get_supported_models: "autohand.getSupportedModels",
       get_supported_commands: "autohand.getSupportedCommands",
+      get_supported_agents: "autohand.getSupportedAgents",
       get_skills_registry: "autohand.getSkillsRegistry",
       install_skill: "autohand.installSkill",
       set_permission_mode: "autohand.permissionModeSet",
@@ -493,6 +494,10 @@ module AutohandSDK
 
     def get_supported_commands
       request(RPC_METHODS.fetch(:get_supported_commands), {})
+    end
+
+    def get_supported_agents
+      request(RPC_METHODS.fetch(:get_supported_agents), {})
     end
 
     def get_skills_registry(force_refresh: nil)

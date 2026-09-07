@@ -1,8 +1,45 @@
 # frozen_string_literal: true
 
 require_relative "test_helper"
+require "json"
 
 class ExtendedRPCFeaturesTest < SDKTestCase
+  def test_discovers_effective_agents
+    agents = [{ "id" => "reviewer", "name" => "reviewer", "description" => "Review changes",
+                "tools" => ["read_file"], "model" => "fantail", "source" => "extension",
+                "extensionId" => "example.review", "extensionVersion" => "1.0.0", "extensionScope" => "project" }]
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars.merge("AUTOHAND_TEST_AGENTS" => JSON.generate("agents" => agents)))
+      sdk.start
+      result = sdk.supported_agents
+
+      assert_equal(1, result.length)
+      assert_equal("reviewer", result.first.id)
+      assert_equal(["read_file"], result.first.tools)
+      assert_equal("fantail", result.first.model)
+      assert_equal("extension", result.first.source)
+      assert_equal("example.review", result.first.extension_id)
+      assert_equal("1.0.0", result.first.extension_version)
+      assert_equal("project", result.first.extension_scope)
+      assert_predicate(result, :frozen?)
+      assert_predicate(result.first.tools, :frozen?)
+      assert_equal("autohand.getSupportedAgents", last_request(request_log).fetch("method"))
+    ensure
+      sdk&.close
+    end
+  end
+
+  def test_rejects_malformed_agent_discovery
+    [{}, { "agents" => nil }, { "agents" => [{}] },
+     { "agents" => [{ "id" => "one", "name" => "one", "description" => "Agent", "tools" => [1] }] }].each do |result|
+      sdk = client(env_vars: { "AUTOHAND_TEST_AGENTS" => JSON.generate(result) })
+      sdk.start
+      assert_raises(TypeError, KeyError) { sdk.supported_agents }
+    ensure
+      sdk&.close
+    end
+  end
+
   def test_permission_acknowledgement_uses_typed_result_and_exact_wire_contract
     with_request_log do |request_log, env_vars|
       sdk = client(env_vars: env_vars)

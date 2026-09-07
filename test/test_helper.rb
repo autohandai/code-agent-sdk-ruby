@@ -416,6 +416,9 @@ module FakeCLI
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { models: [{ id: "test-model" }] })
         when "autohand.getSupportedCommands"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { commands: ["model", "/permissions", "autoresearch"] })
+        when "autohand.getSupportedAgents"
+          result = JSON.parse(ENV.fetch("AUTOHAND_TEST_AGENTS", '{"agents":[]}'))
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: result)
         when "autohand.getSkillsRegistry"
           puts JSON.generate(
             jsonrpc: "2.0",

@@ -28,6 +28,8 @@ module AutohandSDK
   autoload :RPCError, "autohand_sdk/errors"
   autoload :StructuredOutputError, "autohand_sdk/errors"
   autoload :CommunitySkill, "autohand_sdk/discovery_types"
+  autoload :AgentInfo, "autohand_sdk/rpc_types"
+  autoload :SupportedAgentsResult, "autohand_sdk/rpc_types"
   autoload :SkillRegistryCategory, "autohand_sdk/discovery_types"
   autoload :SkillsRegistryResult, "autohand_sdk/discovery_types"
   autoload :InstallSkillResult, "autohand_sdk/discovery_types"

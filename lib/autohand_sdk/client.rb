@@ -360,6 +360,12 @@ module AutohandSDK
       end
     end
 
+    # Return effective subagents, including inline and enabled extension agents.
+    def supported_agents
+      ensure_started
+      SupportedAgentsResult.from_rpc(@rpc_client.get_supported_agents).agents
+    end
+
     def get_skills_registry(force_refresh: nil)
       ensure_started
       result = @rpc_client.get_skills_registry(force_refresh: force_refresh)
