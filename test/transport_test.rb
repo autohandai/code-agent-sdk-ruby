@@ -3,6 +3,19 @@
 require_relative "test_helper"
 
 class TransportTest < SDKTestCase
+  def test_explicit_provider_reaches_the_cli_process
+    transport = AutohandSDK::Transport.new(
+      cli_path: @cli_path, cwd: Dir.pwd, timeout: 2_000,
+      provider: "autohandai", api_key: "fixture-key",
+      env_vars: { "AUTOHAND_PROVIDER" => "openrouter" }
+    )
+    transport.start
+
+    assert_equal("autohandai", transport.request("autohand.env").fetch("AUTOHAND_PROVIDER"))
+  ensure
+    transport&.stop
+  end
+
   def test_request_returns_rpc_result
     transport = AutohandSDK::Transport.new(cli_path: @cli_path, cwd: Dir.pwd, timeout: 2_000)
     transport.start

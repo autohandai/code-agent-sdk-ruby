@@ -512,6 +512,7 @@ module FakeCLI
             result: {
               "BUNDLE_GEMFILE" => ENV["BUNDLE_GEMFILE"],
               "RUBYOPT" => ENV["RUBYOPT"],
+              "AUTOHAND_PROVIDER" => ENV["AUTOHAND_PROVIDER"],
               "RUBYLIB" => ENV["RUBYLIB"],
               "GEM_HOME" => ENV["GEM_HOME"],
               "GEM_PATH" => ENV["GEM_PATH"]

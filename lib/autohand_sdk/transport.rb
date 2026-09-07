@@ -399,7 +399,9 @@ module AutohandSDK
         env["AUTOHAND_AI_API_KEY"] = @config.api_key if @config.api_key
         env["AUTOHAND_AI_BASE_URL"] = @config.base_url if @config.base_url
       end
-      env.merge(@config.env_vars)
+      env.merge!(@config.env_vars)
+      env["AUTOHAND_PROVIDER"] = @config.provider if @config.provider
+      env
     end
 
     def clean_subprocess_environment

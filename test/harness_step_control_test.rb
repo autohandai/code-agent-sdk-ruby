@@ -95,7 +95,8 @@ class HarnessStepControlTest < Minitest::Test
       File.write(File.join(workspace, "evidence.txt"), "sdk-parity-evidence")
       config = File.join(workspace, "config.json")
       File.write(config, JSON.generate(
-                           auth: { token: "sdk-fixture-key" }, provider: "autohandai",
+                           auth: { token: "sdk-fixture-key" }, provider: "openrouter",
+                           openrouter: { baseUrl: "#{provider.url}/unused", apiKey: "saved-provider-key" },
                            autohandai: { model: "fantail", plan: "cloud", authMode: "api-key", contextWindow: 200_000 },
                            features: { autohand_inference: true, automaticSpecialists: false },
                            telemetry: { enabled: false }
@@ -129,6 +130,12 @@ class HarnessStepControlTest < Minitest::Test
         assert_equal(2, provider.calls.length)
         assert_includes(JSON.generate(provider.calls.last.fetch("messages")), "sdk-parity-evidence")
       end
+      saved = JSON.parse(File.read(config))
+
+      assert_equal("openrouter", saved.fetch("provider"))
+      assert_equal("saved-provider-key", saved.fetch("openrouter").fetch("apiKey"))
+      refute(saved.fetch("autohandai").key?("apiKey"))
+      refute(saved.fetch("autohandai").key?("baseUrl"))
     end
   ensure
     provider&.close
