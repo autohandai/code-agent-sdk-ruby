@@ -403,7 +403,7 @@ module AutohandSDK
       append_flag(args, "--ephemeral", @config.ephemeral)
       append_flag(args, "--bare", @config.bare)
       args << "--no-idle-logout" if @config.idle_logout == false
-      append_flag(args, "-c", @config.auto_commit)
+      append_flag(args, "--auto-commit", @config.auto_commit)
       append_flag(args, "--agents-md-create", @config.agents_md_create)
       append_flag(args, "--agents-md-auto-update", @config.agents_md_auto_update)
       args << "--agents-md" if @config.agents_md_enable == true

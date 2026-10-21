@@ -93,7 +93,8 @@ class TransportTest < SDKTestCase
     assert_equal("en-NZ", argv.fetch(argv.index("--display-language") + 1))
     assert_equal("mcp.json", argv.fetch(argv.index("--mcp-config") + 1))
     assert_equal(".autohand/plugins", argv.fetch(argv.index("--plugin-dir") + 1))
-    assert_includes(argv, "-c")
+    assert_includes(argv, "--auto-commit")
+    refute_includes(argv, "-c")
     refute_includes(argv, "--agents-md")
   ensure
     transport&.stop
