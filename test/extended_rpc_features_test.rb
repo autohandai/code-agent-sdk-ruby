@@ -4,6 +4,21 @@ require_relative "test_helper"
 require "json"
 
 class ExtendedRPCFeaturesTest < SDKTestCase
+  def test_browser_capabilities_use_current_cli_contract
+    with_request_log do |request_log, env_vars|
+      sdk = client(env_vars: env_vars)
+      sdk.start
+      sdk.set_browser_capabilities(protocol_version: 2, extension_version: "1.0.0", tools: ["browser_navigate"])
+      request = last_request(request_log)
+
+      assert_equal("autohand.browserCapabilities.set", request.fetch("method"))
+      assert_equal({ "protocolVersion" => 2, "extensionVersion" => "1.0.0", "tools" => ["browser_navigate"] },
+                   request.fetch("params"))
+    ensure
+      sdk&.close
+    end
+  end
+
   def test_discovers_effective_agents
     agents = [{ "id" => "reviewer", "name" => "reviewer", "description" => "Review changes",
                 "tools" => ["read_file"], "model" => "fantail", "source" => "extension",

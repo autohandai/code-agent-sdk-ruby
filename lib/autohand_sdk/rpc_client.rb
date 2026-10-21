@@ -256,6 +256,11 @@ module AutohandSDK
       end
     end
 
+    # Observe complete CLI notifications alongside typed events.
+    def on_notification(&)
+      @transport.observe_notifications(&)
+    end
+
     def start
       @start_stop_mutex.synchronize do
         return self if started? && @transport.running?
@@ -334,6 +339,12 @@ module AutohandSDK
 
     def reset(params = {})
       request(RPC_METHODS.fetch(:reset), params)
+    end
+
+    # Negotiate browser extension tools before issuing browser tasks.
+    def set_browser_capabilities(protocol_version:, extension_version:, tools:)
+      request("autohand.browserCapabilities.set",
+              { "protocolVersion" => protocol_version, "extensionVersion" => extension_version, "tools" => tools })
     end
 
     def create_browser_handoff(extension_id: nil, install_url: nil)

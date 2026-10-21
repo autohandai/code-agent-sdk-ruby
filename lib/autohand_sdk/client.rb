@@ -46,6 +46,11 @@ module AutohandSDK
       end
     end
 
+    # Observe complete CLI notifications alongside typed events.
+    def on_notification(&)
+      @rpc_client.on_notification(&)
+    end
+
     def start
       @lifecycle_mutex.synchronize do
         return self if started?
@@ -54,7 +59,6 @@ module AutohandSDK
         @started = true
         plan_mode = @config.permission_mode == "plan" ? true : @config.plan_mode
         @rpc_client.set_plan_mode(plan_mode) unless plan_mode.nil?
-        @rpc_client.apply_flag_settings({ features: @config.features }) if @config.features
         self
       rescue StandardError
         @started = false
@@ -116,6 +120,13 @@ module AutohandSDK
     def reset
       ensure_started
       ResetResult.from_rpc(@rpc_client.reset(ResetParams.new.to_rpc))
+    end
+
+    # Negotiate browser extension tools before issuing browser tasks.
+    def set_browser_capabilities(protocol_version:, extension_version:, tools:)
+      ensure_started
+      @rpc_client.set_browser_capabilities(protocol_version: protocol_version, extension_version: extension_version,
+                                           tools: tools)
     end
 
     def create_browser_handoff(extension_id: nil, install_url: nil)

@@ -5,6 +5,7 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "autohand_sdk"
 require "fileutils"
 require "minitest/autorun"
+require "minitest/mock"
 require "tmpdir"
 
 # rubocop:disable-next Metrics/ModuleLength -- The inline executable keeps transport tests self-contained.

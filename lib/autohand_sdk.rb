@@ -4,6 +4,7 @@ require_relative "autohand_sdk/version"
 require_relative "autohand_sdk/extended_rpc_autoloads"
 
 module AutohandSDK
+  autoload :WireNotification, "autohand_sdk/wire_notification"
   autoload :Agent, "autohand_sdk/agent"
   autoload :Run, "autohand_sdk/agent"
   autoload :Client, "autohand_sdk/client"

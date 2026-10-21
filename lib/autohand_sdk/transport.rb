@@ -6,9 +6,12 @@ require "open3"
 require "rbconfig"
 require "shellwords"
 
+require_relative "wire_notification"
+require_relative "cli_compatibility"
 require_relative "configuration"
 require_relative "cli_installer"
 require_relative "errors"
+require_relative "runtime_settings"
 
 module AutohandSDK
   # Process-generation ownership and JSON-RPC framing are kept together deliberately.
@@ -106,6 +109,8 @@ module AutohandSDK
       @lifecycle_mutex.synchronize do
         return self if running?
 
+        arguments = build_args(include_binary: false)
+        CliCompatibility.validate(arguments.take(arguments.length - @config.extra_args.length))
         retire_stale_generation
         copy_skill_files if @config.copy_skill_files && (@config.skills.any? || @config.skill_files.any?)
 
@@ -179,6 +184,20 @@ module AutohandSDK
       response["result"]
     ensure
       remove_waiter(request_id) if request_id
+    end
+
+    # Observe raw packets without replacing method-specific handlers.
+    # Callbacks run on the reader thread and must not block it.
+    def observe_notifications(&block)
+      raise ArgumentError, "notification callback required" unless block
+
+      on_notification("*") do |payload|
+        raw = payload.instance_variable_get(:@autohand_raw_params)
+        packet = WireNotification.new(payload["_method"], JSON.parse(JSON.generate(raw)))
+        block.call(packet)
+      rescue StandardError
+        @config.logger.debug("Notification observer failed") if @config.debug
+      end
     end
 
     def on_notification(method, &block)
@@ -332,18 +351,21 @@ module AutohandSDK
       end
     end
 
-    def build_args
-      args = [cli_binary, "--mode", "rpc"]
+    def build_args(include_binary: true)
+      args = include_binary ? [cli_binary, "--mode", "rpc"] : ["--mode", "rpc"]
       append_current_runtime_options(args)
       append_flag(args, "--unrestricted", @config.unrestricted)
       append_flag(args, "--auto-mode", @config.auto_mode)
       append_flag(args, "--auto-skill", @config.auto_skill)
       append_context_compact(args)
-      append_flag(args, "--persist-session", @config.persist_session)
-      append_value(args, "--session-id", @config.session_id)
-      append_flag(args, "--resume", @config.resume)
-      append_flag(args, "--continue", @config.continue_session)
-      append_value(args, "--session-path", @config.session_path)
+      unless RuntimeSettings.fork_reference(@config)
+        reference = @config.session_id || @config.session_path
+        if reference
+          append_value(args, "--sdk-session-reference", reference)
+        elsif @config.resume || @config.continue_session
+          args << "--sdk-resume-last"
+        end
+      end
       append_value(args, "--auto-save-interval", @config.auto_save_interval)
       append_value(args, "--max-tokens", @config.max_tokens)
       append_value(args, "--compression-threshold", @config.compression_threshold)
@@ -368,13 +390,17 @@ module AutohandSDK
       append_value(args, "--model", @config.model)
       append_value(args, "--temperature", @config.temperature)
       append_value(args, "--yolo", @config.yolo)
-      append_value(args, "--yolo-timeout", @config.yolo_timeout)
+      append_value(args, "--timeout", @config.yolo_timeout)
       @config.add_dir.each { |directory| append_value(args, "--add-dir", directory) }
+      if RuntimeSettings.needed?(@config) || @config.env_vars.key?("AUTOHAND_RUN_SETTINGS")
+        args.push("--sdk-settings-version", "1")
+      end
       args.concat(@config.extra_args)
       args
     end
 
     def append_current_runtime_options(args)
+      append_flag(args, "--ephemeral", @config.ephemeral)
       append_flag(args, "--bare", @config.bare)
       args << "--no-idle-logout" if @config.idle_logout == false
       append_flag(args, "-c", @config.auto_commit)
@@ -383,7 +409,7 @@ module AutohandSDK
       args << "--agents-md" if @config.agents_md_enable == true
       args << "--no-agents-md" if @config.agents_md_enable == false
       append_value(args, "--agents-md-path", @config.agents_md_path)
-      append_value(args, "--fork", @config.fork)
+      append_value(args, "--fork", RuntimeSettings.fork_reference(@config))
       append_value(args, "--system-prompt-file", @config.system_prompt_file)
       append_value(args, "--append-system-prompt-file", @config.append_system_prompt_file)
       append_value(args, "--display-language", @config.display_language)
@@ -393,14 +419,16 @@ module AutohandSDK
     end
 
     def build_environment
+      runtime_settings = RuntimeSettings.build(@config)
       env = clean_subprocess_environment.merge("AUTOHAND_STREAM_TOOL_OUTPUT" => "1")
       if @config.provider == "autohandai"
-        env["AUTOHAND_AI_PLAN"] = @config.autohand_ai_plan || "cloud"
+        env["AUTOHAND_AI_PLAN"] = @config.autohand_ai_plan if @config.autohand_ai_plan
         env["AUTOHAND_AI_API_KEY"] = @config.api_key if @config.api_key
         env["AUTOHAND_AI_BASE_URL"] = @config.base_url if @config.base_url
       end
       env.merge!(@config.env_vars)
       env["AUTOHAND_PROVIDER"] = @config.provider if @config.provider
+      env["AUTOHAND_RUN_SETTINGS"] = JSON.generate(runtime_settings) if RuntimeSettings.needed?(@config)
       env
     end
 
