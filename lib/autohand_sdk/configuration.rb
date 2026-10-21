@@ -11,27 +11,20 @@ module AutohandSDK
       cwd cli_path debug timeout startup_check auto_mode unrestricted auto_skill model temperature max_iterations
       max_runtime max_cost sys_prompt append_sys_prompt yolo yolo_timeout add_dir extra_args skills skill_files
       skill_sources install_missing_skills permission_mode permission_allow_list permission_deny_list plan_mode
-      persist_session session_id resume continue_session session_path auto_save_interval context_compact max_tokens
+      ephemeral persist_session session_id resume continue_session session_path auto_save_interval context_compact
+      max_tokens
       compression_threshold summarization_threshold copy_skill_files provider api_key base_url autohand_ai_plan
       env_vars bare idle_logout fork display_language system_prompt_file append_system_prompt_file mcp_config
-      agents plugin_dir features auto_commit agents_md_enable agents_md_create agents_md_path agents_md_auto_update
+      agents plugin_dir features run_settings port auto_commit agents_md_enable agents_md_create
+      agents_md_path agents_md_auto_update
     ].freeze
 
-    attr_accessor :cwd, :cli_path, :debug, :timeout, :startup_check, :auto_mode, :unrestricted, :auto_skill,
-                  :model, :temperature, :max_iterations, :max_runtime, :max_cost, :sys_prompt, :append_sys_prompt,
-                  :yolo, :yolo_timeout, :add_dir, :extra_args, :skills, :skill_files, :skill_sources,
-                  :install_missing_skills, :permission_mode, :permission_allow_list, :permission_deny_list,
-                  :plan_mode, :persist_session, :session_id, :resume, :continue_session, :session_path,
-                  :auto_save_interval, :context_compact, :max_tokens, :compression_threshold,
-                  :summarization_threshold, :copy_skill_files, :provider, :api_key, :base_url, :autohand_ai_plan,
-                  :env_vars, :bare, :idle_logout, :fork, :display_language, :system_prompt_file,
-                  :append_system_prompt_file, :mcp_config, :agents, :plugin_dir, :features, :auto_commit,
-                  :agents_md_enable, :agents_md_create, :agents_md_path, :agents_md_auto_update
+    attr_accessor(*ATTRIBUTES)
     attr_writer :logger
 
     def initialize(**options)
       raw_options = options
-      options = Utils.normalize_hash(options)
+      options, @run_settings = normalize_runtime_options(options)
       options = merge_nested_options(options)
 
       @cwd = options.fetch(:cwd, Dir.pwd)
@@ -57,6 +50,7 @@ module AutohandSDK
       @permission_allow_list = Array(options[:permission_allow_list])
       @permission_deny_list = Array(options[:permission_deny_list])
       @plan_mode = options[:plan_mode]
+      @ephemeral = options[:ephemeral]
       @persist_session = options[:persist_session]
       @session_id = options[:session_id]
       @resume = options[:resume]
@@ -94,7 +88,7 @@ module AutohandSDK
     end
 
     def merge(**options)
-      self.class.new(**to_h, **Utils.normalize_hash(options))
+      self.class.new(**to_h, **options)
     end
 
     def to_h
@@ -115,6 +109,14 @@ module AutohandSDK
 
     private
 
+    def normalize_runtime_options(options)
+      native = options.reject { |key, _| %i[run_settings features].include?(Utils.normalize_key(key)) }
+      normalized = Utils.normalize_hash(native)
+      normalized[:features] = options.reverse_each.find { |key, _| Utils.normalize_key(key) == :features }&.last
+      settings = options.reverse_each.find { |key, _| Utils.normalize_key(key) == :run_settings }&.last
+      [normalized, settings]
+    end
+
     def raw_env_vars(raw_options, normalized_options)
       raw_options[:env_vars] ||
         raw_options["env_vars"] ||
@@ -128,6 +130,7 @@ module AutohandSDK
     end
 
     def apply_current_cli_options(options)
+      @port = options[:port]
       @bare = options[:bare]
       @idle_logout = options[:idle_logout]
       @fork = options[:fork]
@@ -190,13 +193,9 @@ module AutohandSDK
     def validate!
       raise ConfigurationError, "timeout must be positive" unless timeout.to_i.positive?
 
-      if temperature && !(0.0..2.0).cover?(temperature.to_f)
-        raise ConfigurationError, "temperature must be between 0.0 and 2.0"
-      end
+      return unless temperature && !(0.0..2.0).cover?(temperature.to_f)
 
-      return unless provider == "autohandai" && api_key.to_s.empty?
-
-      raise ConfigurationError, "Autohand AI provider requires api_key"
+      raise ConfigurationError, "temperature must be between 0.0 and 2.0"
     end
   end
 end

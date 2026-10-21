@@ -5,6 +5,7 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "autohand_sdk"
 require "fileutils"
 require "minitest/autorun"
+require "minitest/mock"
 require "tmpdir"
 
 # rubocop:disable-next Metrics/ModuleLength -- The inline executable keeps transport tests self-contained.
@@ -416,6 +417,9 @@ module FakeCLI
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { models: [{ id: "test-model" }] })
         when "autohand.getSupportedCommands"
           puts JSON.generate(jsonrpc: "2.0", id: id, result: { commands: ["model", "/permissions", "autoresearch"] })
+        when "autohand.getSupportedAgents"
+          result = JSON.parse(ENV.fetch("AUTOHAND_TEST_AGENTS", '{"agents":[]}'))
+          puts JSON.generate(jsonrpc: "2.0", id: id, result: result)
         when "autohand.getSkillsRegistry"
           puts JSON.generate(
             jsonrpc: "2.0",

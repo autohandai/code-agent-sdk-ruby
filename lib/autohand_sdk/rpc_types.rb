@@ -3,6 +3,37 @@
 # The immutable RPC request and response values form one public contract.
 # rubocop:disable-next Metrics/ModuleLength
 module AutohandSDK
+  # Effective agent metadata; prompts and filesystem paths remain in the CLI.
+  AgentInfo = Data.define(:id, :name, :description, :tools, :model, :source,
+                          :extension_id, :extension_version, :extension_scope) do
+    def self.from_rpc(value)
+      record = RPCValidation.object(value, "agent")
+      scope = record["extensionScope"]
+      new(
+        id: RPCValidation.string(record.fetch("id"), "agent.id"),
+        name: RPCValidation.string(record.fetch("name"), "agent.name"),
+        description: RPCValidation.string(record.fetch("description"), "agent.description"),
+        tools: RPCValidation.array(record.fetch("tools"), "agent.tools").map do |tool|
+          RPCValidation.string(tool, "agent.tools[]")
+        end.freeze,
+        model: RPCValidation.optional_string(record["model"], "agent.model"),
+        source: RPCValidation.optional_string(record["source"], "agent.source"),
+        extension_id: RPCValidation.optional_string(record["extensionId"], "agent.extensionId"),
+        extension_version: RPCValidation.optional_string(record["extensionVersion"], "agent.extensionVersion"),
+        extension_scope: scope.nil? ? nil : RPCValidation.enum(scope, %w[user project], "agent.extensionScope")
+      )
+    end
+  end
+
+  SupportedAgentsResult = Data.define(:agents) do
+    def self.from_rpc(value)
+      record = RPCValidation.object(value, "agent discovery result")
+      new(agents: RPCValidation.array(record.fetch("agents"), "agents").map do |agent|
+        AgentInfo.from_rpc(agent)
+      end.freeze)
+    end
+  end
+
   module RPCValidation
     module_function
 
