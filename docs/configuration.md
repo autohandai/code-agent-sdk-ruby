@@ -38,7 +38,7 @@ AutohandSDK::Client.new(
 | `timeout` | RPC request timeout in milliseconds. |
 | `extra_args` | Additional CLI args appended at startup. |
 | `env_vars` | Environment variables forwarded to the subprocess. |
-| `auto_commit` | Pass `-c` for automatic commits. |
+| `auto_commit` | Pass `--auto-commit` for automatic commits. |
 | `agents_md_enable` | Pass `--agents-md` or `--no-agents-md`. |
 | `agents_md_create` | Create AGENTS.md when missing. |
 | `agents_md_path` | Use an explicit AGENTS.md path. |
