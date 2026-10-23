@@ -344,4 +344,4 @@ its own `passed` result.
 
 ## License
 
-Apache License 2.0 - Free for individuals, non-profits, educational institutions, open source projects, and companies with ARR under $5M. See [LICENSE.txt](LICENSE.txt) and [COMMERCIAL.md](COMMERCIAL.md) for details.
+Apache License 2.0. See [LICENSE.txt](LICENSE.txt).
