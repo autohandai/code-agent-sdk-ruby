@@ -36,6 +36,7 @@ Gem::Specification.new do |spec|
                README.md
                CHANGELOG.md
                LICENSE.txt
+               COMMERCIAL.md
              ])
   end
 
